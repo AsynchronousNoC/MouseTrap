@@ -14,10 +14,10 @@ module PipelineStage
         input wire ack_out
     );
     wire control;
-    /*initial begin
+    initial begin
         ack_in<=0;
         req_out<=0;
-    end*/
+    end
     
     assign control = ~(ack_out ^ req_out);
     
