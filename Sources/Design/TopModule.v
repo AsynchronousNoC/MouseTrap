@@ -2,7 +2,7 @@
 
 module TopModule
     #(
-        parameter PipelineStages=4,
+        parameter PipelineStages=10,
         parameter WORD_WIDTH =32
     )
     (
