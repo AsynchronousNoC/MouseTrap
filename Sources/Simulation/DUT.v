@@ -10,7 +10,9 @@ module DUT(
      //TimingParameters
      parameter outputDelay=1;
      parameter inputDelay=1;
+     parameter SimDelay=1;
      
+     reg reset;
      
      reg req_in_top;
      reg[31:0] Data_in__top;
@@ -21,7 +23,7 @@ module DUT(
      reg ack_out_top;
      
      
-     TopModule#(WORD_WIDTH,pipelineStages) myModule(req_in_top,Data_in__top,ack_in_top,req_out_top,Data_out__top,ack_out_top);
+     TopModule#(pipelineStages,SimDelay,WORD_WIDTH) myModule(reset,req_in_top,Data_in__top,ack_in_top,req_out_top,Data_out__top,ack_out_top);
      
      task OutputCheck();  
         begin
@@ -43,6 +45,9 @@ module DUT(
      endtask
      
      initial begin
+        reset<=1;
+        #20
+        reset<=0;
         req_in_top<=0;
         Data_in__top=32'd25;
         #20
