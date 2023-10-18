@@ -15,7 +15,7 @@ module PipelineStage
         output reg[WORD_WIDTH-1:0] Data_out=32'd0,
         input wire ack_out
     );
-    parameter setup_time = 1;
+    parameter setup_time = 4;
     parameter propagationTime=1;
     wire control;
     wire[WORD_WIDTH-1:0] next_Data;

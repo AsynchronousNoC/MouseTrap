@@ -1,9 +1,10 @@
 `timescale 1ns / 1ps
 
 
-module DUT(
+module Testbench_Moustrap(
 
     );
+    
      //DUT parameters
      parameter WORD_WIDTH=32;
      parameter pipelineStages=10; //sembra un po' inutile nel post implementation
@@ -62,4 +63,5 @@ module DUT(
             //ack_out_top<=0;
             OutputCheck();
      end 
+     
 endmodule

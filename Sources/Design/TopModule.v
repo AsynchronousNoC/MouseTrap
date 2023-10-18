@@ -17,6 +17,7 @@ module TopModule
         output wire[WORD_WIDTH-1:0] Data_out__top,
         input wire ack_out_top
     );
+    /*
     wire req[2*PipelineStages-1:0];
     wire[WORD_WIDTH-1:0] Data[PipelineStages-2:0];
     wire ack[PipelineStages-2:0];
@@ -33,6 +34,8 @@ module TopModule
         (* DONT_TOUCH = "yes" *) PipelineStage#(.WORD_WIDTH(WORD_WIDTH)) pipeStage_final(.reset(reset),.req_in(req[2*(PipelineStages)-2]),.Data_in(Data[(PipelineStages-2)]),.ack_in(ack[(PipelineStages-2)]),.req_out(req[2*(PipelineStages)-1]),.Data_out(Data_out__top),.ack_out(ack_out_top));
         (* DONT_TOUCH = "yes" *) DelayPhysElem#(Delay) delayElem_final(.req_in(req[2*(PipelineStages)-1]),.req_out(req_out_top));
     endgenerate
+    */
+    
    
     
 endmodule
