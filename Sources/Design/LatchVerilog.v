@@ -3,23 +3,24 @@
 module LatchVerilog
     (
         input Enable,
-        input Reset,
+        input extReset,
         input Data,
         output Q
     );
     //Combinatorial Way
-    /*
-    wire Set;
-    wire Reset;
-    wire Qbar;
-    assign Reset = Enable & ~Data; 
-    assign Set = Enable & Data;
-    assign Q = ~(Reset ^ Qbar);
-    assign Qbar = ~(Set ^ Q); 
-    */
+    
+    (* DONT_TOUCH = "yes" *)wire Set,Reset,Qbar,Qbar_old,Q_old;
+    assign Reset = (Enable & ~Data) | extReset; 
+    assign Set = (Enable & Data) & (~extReset);
+    
+    assign Q = ~(Reset | Qbar_old);
+    assign Qbar = ~(Set |  Q_old); 
+    assign Q_old=Q;
+    assign Qbar_old=Qbar;
+    
     //latch way
-    assign Q = Enable ? Data : Q;
+    //assign Q = Enable ? Data : Q;
     //latch way+reset
-    //assign Q = Reset ? 1'b0 : Enable ? Data : Q;
+    //assign Q = extReset ? 1'b0 : Enable ? Data : Q;
     
     endmodule

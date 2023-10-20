@@ -2,12 +2,13 @@
 
 module latchDir
     (
-        input D,
         input Enable,
         input Reset,
+        input D,
         output Q
     );
-    
+    wire Ebar;
+    assign Ebar= ~Enable;
     
     LDCE #(
         .INIT(1'b0),            // Initial value of latch, 1'b0, 1'b1
@@ -19,7 +20,7 @@ module latchDir
         .Q(Q),     // 1-bit output: Data
         .CLR(Reset), // 1-bit input: Asynchronous clear
         .D(D),     // 1-bit input: Data
-        .G(Enable),     // 1-bit input: Gate
+        .G(Ebar),     // 1-bit input: Gate
         .GE(1'b1)    // 1-bit input: Gate enable
     );
     
