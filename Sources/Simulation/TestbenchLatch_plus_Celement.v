@@ -4,7 +4,7 @@
 module TestbenchLatch_plus_Celement(
 
     );
-     parameter i=1;
+     parameter i=2;
      
      if( i==1)begin
         reg Enable,Reset,Data;
@@ -15,16 +15,25 @@ module TestbenchLatch_plus_Celement(
       
         initial begin
             Reset=1;
-            Enable=0;
+            Enable=1;
             Data=0;
             #100
             Reset<=0;
             #10
-            Enable<=1;
             Data<=1;
+            #1
+            Enable<=0;
+            #20
+            Enable<=1;
+            #3   //ritardo nella linea di collegamento del segnale di enable
+            Data<=0;
             #20
             Enable<=0;
-            #1
+            #4
+            Data<=1;
+            #20
+            Enable<=1;
+            #3  //ritardo nella linea di collegamento del segnale di enable
             Data<=0;
         end
      end
@@ -35,13 +44,13 @@ module TestbenchLatch_plus_Celement(
         C_element myCelements(A,B,extReset,C1,C2,C3);
         initial begin
             extReset=0;
-            A=1;
-            B=1;
+            A=0;
+            B=0;
             #50
             extReset=1;
             #50;
-            A<=0;
-            B<=0;
+            A<=1;
+            B<=1;
         end
      end
 endmodule
