@@ -1,31 +1,36 @@
 `timescale 1ns/1ps
 
 module C_element(
-		input A,B,extReset,
+		input A1,A2,A3,B1,B2,B3,extReset,
 		output C1,C2,C3
 	);
 	//1Poss
-	
-	(* DONT_TOUCH = "yes" *) wire Stadio_1,Stadio_2,Stadio_3,C1_old;
-	assign C1 =Stadio_1|Stadio_2|Stadio_3;
-	assign Stadio_1 = A&B;
-	assign Stadio_2 = A&C1_old;
-	assign Stadio_3 = C1_old&B;
-	assign C1_old =C1;
-	
-	
-	
+	C1_elem myC1_elem(A1,B1,C1);
 	
 	//2Poss
-	
-	(* DONT_TOUCH = "yes" *) wire C2_old;
-	assign C2= (A&B)|(A&C2_old)|(C2_old&B);
-	assign C2_old=C2;
-	
-	
+    C2_elem myC2_elem(A2,B2,C2);	
 	
 	//3Poss
-	wire Clear,Enable;
+	C3_elem myC3_elem(A3,B3,extReset,C3);
+	
+endmodule
+module C1_elem(input A,B, output C);
+    (* DONT_TOUCH = "yes" *) wire Stadio_1,Stadio_2,Stadio_3,C_old;
+	assign C =Stadio_1|Stadio_2|Stadio_3;
+	assign Stadio_1 = A&B;
+	assign Stadio_2 = A&C_old;
+	assign Stadio_3 = C_old&B;
+	assign C_old =C;
+endmodule
+
+module C2_elem(input A,B, output C);
+    (* DONT_TOUCH = "yes" *) wire C_old;
+	assign C= (A&B)|(A&C_old)|(C_old&B);
+	assign C_old=C;
+endmodule
+
+module C3_elem(input A,B,extReset, output C);
+    wire Clear,Enable;
 	assign Enable=A&B;
 	assign Clear= ~(extReset & (A|B));
 	LDCE #(
@@ -35,12 +40,10 @@ module C_element(
         .IS_G_INVERTED(1'b0)    // Optional inversion for G
     )
     LDCE_inst (
-        .Q(C3),     // 1-bit output: Data
+        .Q(C),     // 1-bit output: Data
         .CLR(Clear), // 1-bit input: Asynchronous clear
         .D(1'b1),     // 1-bit input: Data
         .G(Enable),     // 1-bit input: Gate
         .GE(1'b1)    // 1-bit input: Gate enable
     );
-    
-	
-	endmodule
+endmodule
