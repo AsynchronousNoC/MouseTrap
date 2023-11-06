@@ -1,0 +1,11 @@
+proc getAbsRLOC {cell} {
+set site [get_sites -of [get_cells $cell]] 
+set X [get_property RPM_X $site]
+set Y [get_property RPM_Y $site] 
+return "X${X}Y${Y}"
+}
+
+
+for {set x 0} {$x<4} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*] $x]; puts -nonewline "   " ; puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*] $x]]; puts " \ "}
+for {set x 5} {$x<8} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*] $x]; puts -nonewline "   " ; puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*] $x]]; puts " \ "}
+#la parte dove fa il puts / non funziona, si ottengono una serie di stringhe che possono essere copiate nell'xdc mettendo all'inizio della prima riga "set rloc [list" e nell 'ultima "]" nelle altre un \ finchè non funziona lo script del tutto
