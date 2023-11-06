@@ -4,7 +4,7 @@ module TopModule
     #(
         parameter PipelineStages=10,
         parameter Delay=1,
-        parameter WORD_WIDTH =4
+        parameter WORD_WIDTH =8
     )
     (
         input reset,

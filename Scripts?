@@ -9,8 +9,9 @@ return "X${X}Y${Y}"
 
 #RPM
 lindex [get_cells FirstStage/*.Data_latch] 3
-for {set x 0} {$x<4} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*.Data_latch] $x]; puts -nonewline "   " ; puts [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]]}
-
+for {set x 0} {$x<8} {incr x} {puts -nonewline "\"";puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]];puts -nonewline "\","}
+puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/req_latch] 0]]
+puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/ReqXor] 0]]
 
 #XDC
 for {set x 0} {$x<4} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*.Data_latch] $x]; puts -nonewline "   " ; puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]]}
