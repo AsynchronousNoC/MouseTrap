@@ -107,7 +107,7 @@ module mousetrap_proc1
        if (~rst) begin
          re <= 0;
        end else begin
-         if (en) begin    // mind this latch is enabled low
+         if (en) begin
            re <= ReqIn;
          end
        end
@@ -118,7 +118,7 @@ module mousetrap_proc1
        if (~rst) begin
          DataOut <= 0;
        end else begin
-         if (en) begin    // mind this latch is enabled low
+         if (en) begin
            DataOut <= DataIn;
          end
        end
@@ -162,7 +162,6 @@ module mousetrap_ldce
         .G(en),     // 1-bit input: Gate
         .GE(1'b1)    // 1-bit input: Gate enable
     );
-    //string'({"X",DataCellAddress[0],"Y",DataCellAddress[1]})
     genvar i;
     generate
         for (i=0; i<WIDTH; i=i+1) begin
@@ -217,7 +216,6 @@ module mousetrap_ldce_woMacros
         .G(en),     // 1-bit input: Gate
         .GE(1'b1)    // 1-bit input: Gate enable
     );
-    //string'({"X",DataCellAddress[0],"Y",DataCellAddress[1]})
     genvar i;
     generate
         for (i=0; i<WIDTH; i=i+1) begin

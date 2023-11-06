@@ -6,15 +6,24 @@ return "X${X}Y${Y}"
 }
 
 
+#pblock
+create_pblock pblock_1
+add_cells_to_pblock [get_pblocks pblock_1] [get_cells -quiet [list FirstStage]]  #se cambia il nome dell'instanziazione devo cambiare il nome qua
+resize_pblock [get_pblocks pblock_1] -add {SLICE_X0Y7:SLICE_X1Y8}  #come scelgo la grandezza del pblock?
+set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_1]
+#idealmente andrebbe runnato N volte per gli N punti di design che si vogliono avere ma poi basta 
+
 
 #RPM
-lindex [get_cells FirstStage/*.Data_latch] 3
 for {set x 0} {$x<8} {incr x} {puts -nonewline "\"";puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]];puts -nonewline "\","}
 puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/req_latch] 0]]
 puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/ReqXor] 0]]
+#sembra funzionare, serve qualche sorta di script che inizializzi le LUT(non vere e proprie) a seconda del fpga usata a causa dell'absolute grid, forse non serve perchè uso solo ldce e lut(?)
 
 #XDC
 for {set x 0} {$x<4} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*.Data_latch] $x]; puts -nonewline "   " ; puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]]}
 for {set x 0} {$x<4} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*] $x]; puts -nonewline "   " ; puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*] $x]]; puts " \ "}
 for {set x 5} {$x<8} {incr x} {puts -nonewline  [lindex [get_cells FirstStage/*] $x]; puts -nonewline "   " ; puts -nonewline [getAbsRLOC [lindex [get_cells FirstStage/*] $x]]; puts " \ "}
 #la parte dove fa il puts / non funziona, si ottengono una serie di stringhe che possono essere copiate nell'xdc mettendo all'inizio della prima riga "set rloc [list" e nell 'ultima "]" nelle altre un \ finchè non funziona lo script del tutto
+
+#non mi convince che devo andare a cercarmi tutte le istanze del modulo e aggiungerlo nell'xdc, anche se tramite script si dovrebbe poter fare
