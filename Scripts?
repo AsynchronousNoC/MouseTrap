@@ -1,9 +1,9 @@
-proc getAbsRLOC {cell} {
-set site [get_sites -of [get_cells $cell]] 
-set X [get_property RPM_X $site]
-set Y [get_property RPM_Y $site] 
-return "X${X}Y${Y}"
-}
+	proc getAbsRLOC {cell} {
+	set site [get_sites -of [get_cells $cell]] 
+	set X [get_property RPM_X $site]
+	set Y [get_property RPM_Y $site] 
+	return "X${X}Y${Y}"
+	}
 
 
 #pblock
