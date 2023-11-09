@@ -16,14 +16,18 @@ module Testbench_Moustrap(
      reg reset;
      
      reg req_in_top;
-     reg[31:0] Data_in__top;
+     reg[WORD_WIDTH-1:0] Data_in__top;
      wire ack_in_top;
         
      wire req_out_top;
-     wire[31:0] Data_out__top;
+     wire[WORD_WIDTH-1:0] Data_out__top;
      reg ack_out_top;
-     
-     
+   
+     logic clk;
+     initial begin
+        clk<=0;
+     end
+     assign #5 clk= ~clk;
      TopModule#(pipelineStages,SimDelay,WORD_WIDTH) myModule(reset,req_in_top,Data_in__top,ack_in_top,req_out_top,Data_out__top,ack_out_top);
      //PipelineStage#(WORD_WIDTH) pipeStage_init(reset,req_in_top,Data_in__top,ack_in_top,req_out_top,Data_out__top,ack_out_top);
      task OutputCheck();  
@@ -38,9 +42,9 @@ module Testbench_Moustrap(
      task InputSend(input[WORD_WIDTH-1:0] Value);  
         begin
             wait(ack_in_top==req_in_top);
-            #3
-            req_in_top =~req_in_top;
-            Data_in__top=Value;
+            Data_in__top<=Value;
+            #4
+            req_in_top <=~req_in_top;
          end
      endtask
      
@@ -49,13 +53,18 @@ module Testbench_Moustrap(
         #20
         reset<=0;
         req_in_top<=0;
-        #20
+        #100
         InputSend(32'd20);
+        #1
         InputSend(32'd15);
+        #1
         InputSend(32'd128);
+        #1
         InputSend(32'd60);
+        #1
         InputSend(32'd45);
      end
+     
      integer i;
      initial begin
         ack_out_top<=0;
