@@ -246,7 +246,7 @@ module mousetrap_ldce_woMacros
      endgenerate;
      
      //xor(en =~ (ReqOut ^ AckOut);
-     LUT2 #(.INIT(4'h9)) ReqXor(.O(en), .I0(Req_dw_o), .I1(Ack_up_o));
+    LUT2 #(.INIT(4'h9)) ReqXor(.O(en), .I0(Req_dw_o), .I1(Ack_dw_i));
   	assign Req_dw_o = re;
 	  assign Ack_up_o = re;
 endmodule
