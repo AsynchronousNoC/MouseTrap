@@ -25,7 +25,8 @@ endmodule
 
 module C2_elem(input A,B, output C);
     (* DONT_TOUCH = "yes" *) wire C_old;
-	assign C= (A&B)|(A&C_old)|(C_old&B);
+    (*BEL="A6LUT", LOCK_PINS = "I2:A6" *)  LUT3#(.INIT(8'b11101000)) C_elLUT(.O(C),.I0(A),.I1(B),.I2(C_old));
+	//assign C= (A&B)|(A&C_old)|(C_old&B);
 	assign C_old=C;
 endmodule
 

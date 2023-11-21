@@ -17,7 +17,7 @@ module Mutex
     assign nandoutB_old = nandoutB;
     
     
-    (* HU_SET = "MutexSet", RLOC = "X1Y0" *) LUT2 #(.INIT(4'h2)) ANDA(enA,nandoutA,nandoutB);
-    (* HU_SET = "MutexSet", RLOC = "X1Y0" *) LUT2 #(.INIT(4'h4)) ANDB(enB,nandoutA,nandoutB);
+    (* HU_SET = "MutexSet", RLOC = "X1Y0" *) LUT2 #(.INIT(4'h2)) ANDA(enB,nandoutA,nandoutB);
+    (* HU_SET = "MutexSet", RLOC = "X1Y0" *) LUT2 #(.INIT(4'h4)) ANDB(enA,nandoutA,nandoutB);
     
 endmodule
