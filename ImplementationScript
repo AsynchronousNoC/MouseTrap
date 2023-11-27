@@ -1,0 +1,73 @@
+#method to get positions from cells
+proc getAbsRLOC {cell} {
+	set site [get_sites -of [get_cells $cell]] 
+	set X [get_property RPM_X $site]
+	set Y [get_property RPM_Y $site] 
+	return "X${X}Y${Y}"
+	}
+
+#prepareCodeToRunWithout RLOC
+set f [open ./Sources/Design/TopModule.sv r]
+set file_data [read $f]
+close $f
+set f [open Temp.sv w+] 
+set data [split $file_data "\n"]
+foreach line $data {
+	if { [regexp -all "mousetrap_ldce" $line] } { 
+		regsub -all "mousetrap_ldce" $line "mousetrap_ldce_woMacros" line
+	}
+		puts $f $line
+}
+close $f
+exec mv Temp.sv ./Sources/Design/TopModule.sv
+
+#run implementation with pblock
+set_property is_enabled true [get_files  constraints.xdc]
+reset_run synth_1
+launch_runs impl_1 -jobs 6
+wait_on_run impl_1
+set_property is_enabled false [get_files  constraints.xdc]
+
+#write back file with RLOX
+set f [open Temp.sv w+] 
+foreach line $data {
+		puts $f $line
+}
+close $f
+exec mv Temp.sv ./Sources/Design/TopModule.sv
+
+#get implementation positions
+#dataLath positions
+open_run impl_1
+set Datalatch  "WIDTH=='d32 ?  {\"";append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] 0]]; append Datalatch "\""
+for {set x 1} {$x<32} {incr x} {append Datalatch ",\"";append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]];append Datalatch  "\""}
+append Datalatch "} :"
+
+#reqLath positions
+set ReqLatch  " WIDTH=='d32 ?\"";append ReqLatch [getAbsRLOC [lindex [get_cells FirstStage/req_latch] 0]]; append ReqLatch "\" :"
+
+#LUT position
+set ReqLut  " WIDTH=='d32 ?\"";append ReqLut [getAbsRLOC [lindex [get_cells FirstStage/ReqXor] 0]]; append ReqLut "\" :"
+
+#write new positions to file
+set f [open ./Sources/Design/Mousetrap.sv r]
+set file_data [read $f]
+close $f
+set f [open Temp.sv w+] 
+set data [split $file_data "\n"]
+foreach line $data {
+	if { [regexp -all "32Bit DataCellAddress" $line] } { 
+		puts $f $Datalatch
+	} elseif { [regexp -all "32Bit ReqCellAddress" $line] } {
+		puts $f $ReqLatch
+	} elseif { [regexp -all "32Bit ReqXorAddress" $line] } {
+		puts $f $ReqLut
+	} else {
+		puts $f $line
+	}
+}
+close $f
+exec mv Temp.sv ./Sources/Design/Mousetrap.sv
+
+
+

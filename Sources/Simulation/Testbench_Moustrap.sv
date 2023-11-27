@@ -6,7 +6,7 @@ module Testbench_Moustrap(
     );
      
      //DUT parameters
-     parameter WORD_WIDTH=8;
+     parameter WORD_WIDTH=32;
      logic reset;
      logic clk;
      initial begin
@@ -14,7 +14,7 @@ module Testbench_Moustrap(
         clk=0;
      end
      assign #50 clk= ~clk;
-     /*
+     
      //pipeline
      logic req_in_top;
      logic[WORD_WIDTH-1:0] Data_in__top;
@@ -62,7 +62,7 @@ module Testbench_Moustrap(
         for (i=0;i<8;i=i+1)
             OutputCheck();
      end 
-     */
+     
      /*
      //Celement
      logic A,B;
@@ -78,6 +78,7 @@ module Testbench_Moustrap(
         A<=0;
      end
      */
+     /*
      logic inA,inB;
      wire enA,enB;
      TopModule#(WORD_WIDTH) myModule(reset,inA,inB,enA,enB);
@@ -90,4 +91,5 @@ module Testbench_Moustrap(
         #200
         inA<=0;
      end
+     */
 endmodule

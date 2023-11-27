@@ -20,7 +20,7 @@
 
 
 
-#create_pblock pblock_1
-#add_cells_to_pblock [get_pblocks pblock_1] [get_cells -quiet [list FirstStage]]
-#resize_pblock [get_pblocks pblock_1] -add {SLICE_X0Y7:SLICE_X3Y9}
-#set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_1]
+create_pblock pblock_1
+add_cells_to_pblock [get_pblocks pblock_1] [get_cells -quiet [list FirstStage]]
+resize_pblock [get_pblocks pblock_1] -add {SLICE_X0Y7:SLICE_X3Y9}
+set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_1]
