@@ -6,7 +6,7 @@ proc getAbsRLOC {cell} {
 	return "X${X}Y${Y}"
 	}
 	
-set WIDTH 16
+set WIDTH 8
 
 
 #prepareCodeToRunWithout RLOC
@@ -48,7 +48,7 @@ exec mv Temp.sv ./Sources/Design/TopModule.sv
 #dataLath positions
 open_run impl_1
 set Datalatch  [subst "  WIDTH=='d$WIDTH ?  {\""];append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] 0]]; append Datalatch "\""
-for {set x 1} {$x<$p} {incr x} {append Datalatch ",\"";append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]];append Datalatch  "\""}
+for {set x 1} {$x<$WIDTH} {incr x} {append Datalatch ",\"";append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]];append Datalatch  "\""}
 append Datalatch "} :";append Datalatch  [subst "////$WIDTH Bit DataCellAddress"]
 
 #reqLath positions
