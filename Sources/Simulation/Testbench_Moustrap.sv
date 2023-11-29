@@ -6,7 +6,7 @@ module Testbench_Moustrap(
     );
      
      //DUT parameters
-     parameter WORD_WIDTH=32;
+     parameter WORD_WIDTH=64;
      logic reset;
      logic clk;
      initial begin
@@ -37,9 +37,9 @@ module Testbench_Moustrap(
      task InputSend(input[WORD_WIDTH-1:0] Value);  
         begin
             wait(ack_in_top==req_in_top);
-            #5
+            #28
             Data_in__top<=Value;
-            #9
+            #2
             req_in_top <=~req_in_top;
             #1;
          end
@@ -52,8 +52,10 @@ module Testbench_Moustrap(
         reset<=0;
         req_in_top<=0;
         #1000
-        InputSend(32'd15);
-        InputSend(32'd20);
+        InputSend({WORD_WIDTH{1'd1}});
+        InputSend({WORD_WIDTH{1'd0}});
+        InputSend({WORD_WIDTH{1'd1}});
+        InputSend({WORD_WIDTH{1'd0}});
      end
      
      integer i;
