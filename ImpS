@@ -6,7 +6,7 @@ proc getAbsRLOC {cell} {
 	return "X${X}Y${Y}"
 	}
 	
-set WIDTH 8
+set WIDTH 16
 
 
 #prepareCodeToRunWithout RLOC
@@ -27,17 +27,17 @@ close $f
 exec mv Temp.sv ./Sources/Design/TopModule.sv
 
 #run implementation with pblock
-set_property is_enabled true [get_files  constraints.xdc]
+set_property is_enabled true [get_files  DefineImplConstraints.xdc]
 reset_run synth_1
 launch_runs impl_1 -jobs 6
 wait_on_run impl_1
-set_property is_enabled false [get_files  constraints.xdc]
+set_property is_enabled false [get_files  DefineImplConstraints.xdc]
 
 #write back file with RLOX
 set f [open Temp.sv w+] 
 foreach line $data {
 	if { [regexp -all "parameter WORD_WIDTH" $line] } {
-		set line [subst "parameter WORD_WIDTH=$WIDTH"]
+		set line [subst "\t\t\tparameter WORD_WIDTH=$WIDTH"]
 	}
 		puts $f $line
 }

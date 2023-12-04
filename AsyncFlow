@@ -1,0 +1,39 @@
+set WIDTH 16
+
+#---------Ottimizzazione
+
+
+
+
+#---------Ricavo i dati
+#si ottiene un tempo in nanosecondi
+set max_Bundled [get_property -max DATAPATH_DELAY [get_timing_paths -max_paths 100 -from [get_cells FirstStage/*.Data_latch] -to [get_cells Interface_dw/*.Data_latch]]]
+
+
+#non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
+set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_cells FirstStage/*.Data_latch/G]]]
+set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_cells FirstStage/req_latch/G]]]
+
+set min_Bundled [expr $Max_Bundled + ($max_enable-$min_enable)*1e-3]
+
+set f [open Temp.xdc w+] 
+#usando i doppi apici non mi funziona l'escape del carattere
+puts $f [subst {set_min_delay -from \[get_cells FirstStage/*.Data_latch\] -to \[get_cells Interface_dw/*.Data_latch\] $min_Bundled}]
+#fisso le NET dei dati
+for {set x 0} {$x<$WIDTH} {incr x} {
+	set net [get_nets FirstStage/Data_dw_o[$x]];
+	set routes [get_property ROUTE $net];
+	set line [subst { set_property FIXED_ROUTE {$routes} \[get_nets FirstStage/Data_dw_o\[0\]\] }];
+	puts $f $line;
+}
+close $f
+
+#exec mv Temp.xdc ./Sources/Constraints/BubdledConstraints.xdc
+
+
+
+
+
+
+
+#---------Implementazione per rendere corretto il funzionamento
