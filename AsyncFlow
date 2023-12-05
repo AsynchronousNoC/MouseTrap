@@ -1,39 +1,67 @@
+proc FixBell {cell fileDescriptor} {
+	#questo comando recupera la posizione BEL della cella
+	set BEL_property [get_property BEL [get_cells $cell]]
+	#questo comando formatta il comando affinchè nel costraint file la posizione BELL sia bloccata
+	set line [subst {set_property BEL $BEL_property \[get_cells $cell\] }];
+	puts $fileDescriptor $line;
+	}
+proc FixLOC {cell fileDescriptor} {
+	#questo comando recupera la posizione LOC della cella
+	set LOC_property [get_property LOC [get_cells $cell]]
+	#questo comando formatta il comando affinchè nel costraint file la posizione LOC sia bloccata
+	set line [subst {set_property LOC $LOC_property \[get_cells $cell\] }];
+	puts $fileDescriptor $line;
+	}
+proc FixNet {net fileDescriptor} {
+	#questo comando recupera la NET route della NET
+	set routes [get_property ROUTE $net];
+	#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
+	set line [subst {set_property FIXED_ROUTE {$routes} \[get_nets $net\] }];
+	puts $fileDescriptor $line;
+	}
+	
+
+
 set WIDTH 16
 
 #---------Ottimizzazione
 
+#set_max_delay -from [get_cells FirstStage/*.Data_latch] -to [get_cells Interface_dw/*.Data_latch] 0.000
+#set_max_delay -from [get_cells FirstStage/req_latch] -to [get_cells Interface_dw/req_latch] 0.000
 
 
 
 #---------Ricavo i dati
+open_run impl_1
 #si ottiene un tempo in nanosecondi
 set max_Bundled [get_property -max DATAPATH_DELAY [get_timing_paths -max_paths 100 -from [get_cells FirstStage/*.Data_latch] -to [get_cells Interface_dw/*.Data_latch]]]
 
 
 #non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
-set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_cells FirstStage/*.Data_latch/G]]]
-set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_cells FirstStage/req_latch/G]]]
+set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_pins FirstStage/*.Data_latch/G]]]
+set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_pins FirstStage/req_latch/G]]]
 
-set min_Bundled [expr $Max_Bundled + ($max_enable-$min_enable)*1e-3]
+set min_Bundled [expr $max_Bundled + ($max_enable-$min_enable)*1e-3]
 
 set f [open Temp.xdc w+] 
 #usando i doppi apici non mi funziona l'escape del carattere
-puts $f [subst {set_min_delay -from \[get_cells FirstStage/*.Data_latch\] -to \[get_cells Interface_dw/*.Data_latch\] $min_Bundled}]
-#fisso le NET dei dati
+puts $f "#---------------Set min delay for data latch"
+puts $f [subst {set_min_delay -from \[get_cells FirstStage/req_latch\] -to \[get_cells Interface_dw/req_latch\] $min_Bundled}]
+
+#Devo fissare tutte le  net e le celle appartenenti al cammino dei dati una volta che questi sono ottimizzati
+puts $f "\n\n#Fix Data_latch nets"
 for {set x 0} {$x<$WIDTH} {incr x} {
-	set net [get_nets FirstStage/Data_dw_o[$x]];
-	set routes [get_property ROUTE $net];
-	set line [subst { set_property FIXED_ROUTE {$routes} \[get_nets FirstStage/Data_dw_o\[0\]\] }];
-	puts $f $line;
+	puts $f [subst {\n#Data\[$x\]}]
+	set TimingPath [get_timing_paths -from [get_cells FirstStage/genblk1[$x].Data_latch] -to [get_cells Interface_dw/genblk1[$x].Data_latch]]
+	foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $f;FixLOC $cell $f;}
+	foreach net [get_nets -of_objects $TimingPath] {FixNet $net $f}
+	#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
 }
+
+#chiudo il file e lo muovo nel constraint che uso
 close $f
-
-#exec mv Temp.xdc ./Sources/Constraints/BubdledConstraints.xdc
-
-
-
-
-
+exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
 
 
 #---------Implementazione per rendere corretto il funzionamento
+
