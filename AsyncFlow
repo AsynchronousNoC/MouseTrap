@@ -1,3 +1,13 @@
+#procedura per l'ottimizzazione
+proc MinTimeConstrain {Stage1 Stage2 fileDescriptor} {
+	puts $fileDescriptor [subst "\n\n#Puts max_delay constrain from $Stage1 to $Stage2"]
+	#usando i doppi apici non mi funziona l'escape del carattere
+	puts $fileDescriptor {set_max_delay -from \[get_pins $Stage1/*.Data_latch/G\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}
+	puts $fileDescriptor {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] 0.000}
+	puts $fileDescriptor "\n\n"
+}
+
+#procedure per la robustezza
 proc FixBell {cell fileDescriptor} {
 	#questo comando recupera la posizione BEL della cella
 	set BEL_property [get_property BEL [get_cells $cell]]
@@ -5,6 +15,7 @@ proc FixBell {cell fileDescriptor} {
 	set line [subst {set_property BEL $BEL_property \[get_cells $cell\] }];
 	puts $fileDescriptor $line;
 	}
+	
 proc FixLOC {cell fileDescriptor} {
 	#questo comando recupera la posizione LOC della cella
 	set LOC_property [get_property LOC [get_cells $cell]]
@@ -12,6 +23,7 @@ proc FixLOC {cell fileDescriptor} {
 	set line [subst {set_property LOC $LOC_property \[get_cells $cell\] }];
 	puts $fileDescriptor $line;
 	}
+	
 proc FixNet {net fileDescriptor} {
 	#questo comando recupera la NET route della NET
 	set routes [get_property ROUTE $net];
@@ -20,48 +32,82 @@ proc FixNet {net fileDescriptor} {
 	puts $fileDescriptor $line;
 	}
 	
+proc MinTimeConstrain {Stage1 Stage2 fileDescriptor WIDTH} {
+	set TimingPaths [get_timing_paths -max_paths 100 -from [get_cells $Stage1/*.Data_latch] -to [get_cells $Stage2/*.Data_latch]]
+	#Ricavo i dati di timing dopo l'ottimizzazione
+	#si ottiene un tempo in nanosecondi
+	set max_Bundled [get_property -max DATAPATH_DELAY $TimingPaths]
+	#non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
+	set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/*.Data_latch/G]]]
+	set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/req_latch/G]]]
+	set min_Bundled [expr $max_Bundled + ($max_enable-$min_enable)*1e-3]
+	
+	puts $fileDescriptor [subst "#---------------Set min delay for data latch from $Stage1 to $Stage2"]
+	#usando i doppi apici non mi funziona l'escape del carattere
+	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] $min_Bundled}]
+
+	#Devo fissare tutte le  net e le celle appartenenti al cammino dei dati una volta che questi sono ottimizzati
+	puts $fileDescriptor [subst "\n\n#Fix Data_latch nets from $Stage1 to $Stage2"]
+		foreach TimingPath $TimingPaths {
+			foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+			foreach net [get_nets -of_objects $TimingPath] {FixNet $net $fileDescriptor}
+			#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
+			puts $fileDescriptor "\n"
+		}
+	puts $fileDescriptor "\n\n"
+}
+
+	
 
 
 set WIDTH 16
 
 #---------Ottimizzazione
 
-#set_max_delay -from [get_cells FirstStage/*.Data_latch] -to [get_cells Interface_dw/*.Data_latch] 0.000
-#set_max_delay -from [get_cells FirstStage/req_latch] -to [get_cells Interface_dw/req_latch] 0.000
+	#---------Preparazione Constraint File
+	#set f [open Temp.xdc w+] 
+	#foreach cell $Pipelines {
+	#	foreach cellInter $Pipelines {
+	#		set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
+	#		if {$Coppia != ""} {
+	#			MaxTimeConstraint $cell $cellInter $f $WIDTH
+	#		}
+	#	}
+	#}
+	#close $f
+	#exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
 
 
 
-#---------Ricavo i dati
-open_run impl_1
-#si ottiene un tempo in nanosecondi
-set max_Bundled [get_property -max DATAPATH_DELAY [get_timing_paths -max_paths 100 -from [get_cells FirstStage/*.Data_latch] -to [get_cells Interface_dw/*.Data_latch]]]
+	#---------Loop Implementativo
+	#come gestire il loop per capire quando è finita l'ottimizzazione?
 
 
-#non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
-set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_pins FirstStage/*.Data_latch/G]]]
-set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets FirstStage/en] -to [get_pins FirstStage/req_latch/G]]]
+#---------Robustezza
 
-set min_Bundled [expr $max_Bundled + ($max_enable-$min_enable)*1e-3]
 
-set f [open Temp.xdc w+] 
-#usando i doppi apici non mi funziona l'escape del carattere
-puts $f "#---------------Set min delay for data latch"
-puts $f [subst {set_min_delay -from \[get_cells FirstStage/req_latch\] -to \[get_cells Interface_dw/req_latch\] $min_Bundled}]
+	#---------Preparazione Constrain File
+	#open_run impl_1
+	set f [open Temp.xdc w+] 
+	#questo ancora non è gerarchico
+	set Pipelines [get_cells -filter {ORIG_REF_NAME=="mousetrap_ldce" || REF_NAME=="mousetrap_ldce"}]
+	#c'è un modo più intelligente di fare n^2 confronti boh forse
+	foreach cell $Pipelines {
+		foreach cellInter $Pipelines {
+			set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
+			if {$Coppia != ""} {
+				MinTimeConstrain $cell $cellInter $f $WIDTH
+			}
+		}
+	}
 
-#Devo fissare tutte le  net e le celle appartenenti al cammino dei dati una volta che questi sono ottimizzati
-puts $f "\n\n#Fix Data_latch nets"
-for {set x 0} {$x<$WIDTH} {incr x} {
-	puts $f [subst {\n#Data\[$x\]}]
-	set TimingPath [get_timing_paths -from [get_cells FirstStage/genblk1[$x].Data_latch] -to [get_cells Interface_dw/genblk1[$x].Data_latch]]
-	foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $f;FixLOC $cell $f;}
-	foreach net [get_nets -of_objects $TimingPath] {FixNet $net $f}
-	#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
-}
-
-#chiudo il file e lo muovo nel constraint che uso
-close $f
-exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
-
+	#chiudo il file e lo muovo nel constraint che uso
+	close $f
+	#exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
 
 #---------Implementazione per rendere corretto il funzionamento
+#come gestisco il loop per capire quando funziona
+
+
 
