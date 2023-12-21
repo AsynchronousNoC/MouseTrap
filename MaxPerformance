@@ -1,0 +1,45 @@
+#procedura per l'ottimizzazione
+proc MaxTimeConstrain {Stage1 Stage2 fileDescriptor} {
+	puts $fileDescriptor [subst "\n\n#Puts max_delay constrain from $Stage1 to $Stage2"]
+	#usando i doppi apici non mi funziona l'escape del carattere
+	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/*.Data_latch/G\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] 0.000}]
+	puts $fileDescriptor "\n\n"
+}
+
+
+
+set Mousetrap_name "mousetrap_ldce"
+#set_property is_enabled true [get_files  BundledConstraints.xdc]
+#---------Ottimizzazione
+	#open_run impl_1
+	set Pipelines [get_cells -hierarchical -filter {ORIG_REF_NAME=="mousetrap_ldce" || REF_NAME=="mousetrap_ldce"}]
+	#---------Preparazione Constraint File
+	set f [open Temp.xdc w+] 
+	foreach cell $Pipelines {
+		foreach cellInter $Pipelines {
+			set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
+			if {$Coppia != ""} {
+				MaxTimeConstrain $cell $cellInter $f
+			}
+		}
+	}
+	close $f
+	exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
+
+
+
+	#---------Loop Implementativo
+	#come gestire il loop per capire quando è finita l'ottimizzazione?
+
+
+#---------Robustezza
+
+
+	
+#---------Implementazione per rendere corretto il funzionamento
+#come gestisco il loop per capire quando funziona
+#set_property is_enabled false [get_files  BundledConstraints.xdc]
+
+

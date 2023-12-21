@@ -1,9 +1,10 @@
 #procedura per l'ottimizzazione
-proc MinTimeConstrain {Stage1 Stage2 fileDescriptor} {
+proc MaxTimeConstrain {Stage1 Stage2 fileDescriptor} {
 	puts $fileDescriptor [subst "\n\n#Puts max_delay constrain from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
-	puts $fileDescriptor {set_max_delay -from \[get_pins $Stage1/*.Data_latch/G\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}
-	puts $fileDescriptor {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] 0.000}
+	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/*.Data_latch/G\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] 0.000}]
 	puts $fileDescriptor "\n\n"
 }
 
@@ -32,7 +33,7 @@ proc FixNet {net fileDescriptor} {
 	puts $fileDescriptor $line;
 	}
 	
-proc MinTimeConstrain {Stage1 Stage2 fileDescriptor WIDTH} {
+proc MinTimeConstrain {Stage1 Stage2 fileDescriptor} {
 	set TimingPaths [get_timing_paths -max_paths 100 -from [get_cells $Stage1/*.Data_latch] -to [get_cells $Stage2/*.Data_latch]]
 	#Ricavo i dati di timing dopo l'ottimizzazione
 	#si ottiene un tempo in nanosecondi
@@ -40,7 +41,8 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor WIDTH} {
 	#non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
 	set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/*.Data_latch/G]]]
 	set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/req_latch/G]]]
-	set min_Bundled [expr $max_Bundled + ($max_enable-$min_enable)*1e-3]
+	set margine 1.1
+	set min_Bundled [expr $margine*($max_Bundled + ($max_enable-$min_enable)*1e-3)]
 	
 	puts $fileDescriptor [subst "#---------------Set min delay for data latch from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
@@ -61,8 +63,11 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor WIDTH} {
 	
 
 
-set WIDTH 16
+set Mousetrap_name "mousetrap_ldce"
+#---------run synthesis
 
+
+#set_property is_enabled true [get_files  BundledConstraints.xdc]
 #---------Ottimizzazione
 
 	#---------Preparazione Constraint File
@@ -71,7 +76,7 @@ set WIDTH 16
 	#	foreach cellInter $Pipelines {
 	#		set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
 	#		if {$Coppia != ""} {
-	#			MaxTimeConstraint $cell $cellInter $f $WIDTH
+	#			MaxTimeConstrain $cell $cellInter $f
 	#		}
 	#	}
 	#}
@@ -81,6 +86,10 @@ set WIDTH 16
 
 
 	#---------Loop Implementativo
+	#set_property AUTO_INCREMENTAL_CHECKPOINT 1 [get_runs impl_1]
+	#set_property AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY /home/giuseppe/Desktop/TESI/MouseTrap/project_moustrap/project_moustrap.srcs/utils_1/imports/impl_1 [get_runs impl_1]
+	#set_property incremental_checkpoint.directive RuntimeOptimized [get_runs impl_1]
+
 	#come gestire il loop per capire quando è finita l'ottimizzazione?
 
 
@@ -88,26 +97,26 @@ set WIDTH 16
 
 
 	#---------Preparazione Constrain File
-	#open_run impl_1
+	open_run impl_1
 	set f [open Temp.xdc w+] 
-	#questo ancora non è gerarchico
-	set Pipelines [get_cells -filter {ORIG_REF_NAME=="mousetrap_ldce" || REF_NAME=="mousetrap_ldce"}]
+	#prima implementazione senza constrained?
+	set Pipelines [get_cells -hierarchical -filter {ORIG_REF_NAME=="mousetrap_ldce" || REF_NAME=="mousetrap_ldce"}]
 	#c'è un modo più intelligente di fare n^2 confronti boh forse
 	foreach cell $Pipelines {
 		foreach cellInter $Pipelines {
 			set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
 			if {$Coppia != ""} {
-				MinTimeConstrain $cell $cellInter $f $WIDTH
+				MinTimeConstrain $cell $cellInter $f
 			}
 		}
 	}
 
 	#chiudo il file e lo muovo nel constraint che uso
 	close $f
-	#exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
-
+	exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
+	
 #---------Implementazione per rendere corretto il funzionamento
 #come gestisco il loop per capire quando funziona
-
+#set_property is_enabled false [get_files  BundledConstraints.xdc]
 
 
