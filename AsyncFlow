@@ -33,7 +33,7 @@ proc FixNet {net fileDescriptor} {
 	puts $fileDescriptor $line;
 	}
 	
-proc MinTimeConstrain {Stage1 Stage2 fileDescriptor} {
+proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 	set TimingPaths [get_timing_paths -max_paths 100 -from [get_cells $Stage1/*.Data_latch] -to [get_cells $Stage2/*.Data_latch]]
 	#Ricavo i dati di timing dopo l'ottimizzazione
 	#si ottiene un tempo in nanosecondi
@@ -41,7 +41,7 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor} {
 	#non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
 	set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/*.Data_latch/G]]]
 	set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/req_latch/G]]]
-	set margine 1.1
+	
 	set min_Bundled [expr $margine*($max_Bundled + ($max_enable-$min_enable)*1e-3)]
 	
 	puts $fileDescriptor [subst "#---------------Set min delay for data latch from $Stage1 to $Stage2"]
@@ -60,63 +60,64 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor} {
 	puts $fileDescriptor "\n\n"
 }
 
-	
+#---------------MAIN----------------#
+#Global variables
+	set Mousetrap_name "mousetrap_ldce"
+	set Maximum_tries 10
+	set margine 1.1
 
 
-set Mousetrap_name "mousetrap_ldce"
 #---------run synthesis
+	reset_run synth_1
+	launch_runs synth_1 -jobs 6
+	wait_on_run synth_1
 
-
-#set_property is_enabled true [get_files  BundledConstraints.xdc]
 #---------Ottimizzazione
-
+	open_run synth_1 -name synth_1
+	set_property is_enabled true [get_files  BundledConstraints.xdc]
 	#---------Preparazione Constraint File
-	#set f [open Temp.xdc w+] 
-	#foreach cell $Pipelines {
-	#	foreach cellInter $Pipelines {
-	#		set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
-	#		if {$Coppia != ""} {
-	#			MaxTimeConstrain $cell $cellInter $f
-	#		}
-	#	}
-	#}
-	#close $f
-	#exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
-
-
-
-	#---------Loop Implementativo
-	#set_property AUTO_INCREMENTAL_CHECKPOINT 1 [get_runs impl_1]
-	#set_property AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY /home/giuseppe/Desktop/TESI/MouseTrap/project_moustrap/project_moustrap.srcs/utils_1/imports/impl_1 [get_runs impl_1]
-	#set_property incremental_checkpoint.directive RuntimeOptimized [get_runs impl_1]
-
-	#come gestire il loop per capire quando è finita l'ottimizzazione?
-
-
+	set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
+	set f [open Temp.xdc w+] 
+	foreach cell $Pipelines {
+		foreach cellInter $Pipelines {
+			set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
+			if {$Coppia != ""} {
+				MaxTimeConstrain $cell $cellInter $f
+			}
+		}
+	}
+	close $f
+	exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
+	#implementazione
+	launch_runs impl_1 -jobs 6
+	wait_on_run impl_1
 #---------Robustezza
-
-
 	#---------Preparazione Constrain File
 	open_run impl_1
 	set f [open Temp.xdc w+] 
-	#prima implementazione senza constrained?
-	set Pipelines [get_cells -hierarchical -filter {ORIG_REF_NAME=="mousetrap_ldce" || REF_NAME=="mousetrap_ldce"}]
 	#c'è un modo più intelligente di fare n^2 confronti boh forse
 	foreach cell $Pipelines {
 		foreach cellInter $Pipelines {
 			set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
 			if {$Coppia != ""} {
-				MinTimeConstrain $cell $cellInter $f
+				MinTimeConstrain $cell $cellInter $f $margine
 			}
 		}
 	}
-
 	#chiudo il file e lo muovo nel constraint che uso
 	close $f
 	exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
 	
 #---------Implementazione per rendere corretto il funzionamento
-#come gestisco il loop per capire quando funziona
-#set_property is_enabled false [get_files  BundledConstraints.xdc]
+	set num 0;
+	while { [get_timing_paths -hold -max_paths 100 -slack_lesser_than 0 -quiet] != "" && $num<$Maximum_tries} {
+		reset_run impl_1
+		launch_runs impl_1 -jobs 6
+		set num [expr $num+1]
+	}
+	
+	open_run impl_1
+	
+	set_property is_enabled false [get_files  BundledConstraints.xdc]
 
 

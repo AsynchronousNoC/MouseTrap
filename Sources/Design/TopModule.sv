@@ -35,9 +35,9 @@ module TopModule
     logic req_a,req_b,ack_a,ack_b;
     logic[WORD_WIDTH-1:0] Data_a,Data_b;
     //for word_width<32:"X0Y0""X4Y0""X6Y0", else "X0Y0","X8Y0","X12Y0"
-    (* DONT_TOUCH = "yes", U_SET = "uset2", RLOC = "X0Y0" *) mousetrap_ldce #(55,WORD_WIDTH)  Interface_up(reset,req_up_top_i,Data_up_top_i,ack_up_top_o,req_a,Data_a,ack_a);
-    (* DONT_TOUCH = "yes", U_SET = "uset2", RLOC = "X8Y0" *) mousetrap_ldce #(55,WORD_WIDTH) FirstStage(reset,req_a,Data_a,ack_a,req_b,Data_b,ack_b);
-    (* DONT_TOUCH = "yes", U_SET = "uset2", RLOC = "X16Y0"*) mousetrap_ldce #(55,WORD_WIDTH)  Interface_dw(reset,req_b,Data_b,ack_b,req_dw_top_o,Data_dw_top_o,ack_dw_top_i);
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH) Interface_up(reset,req_up_top_i,Data_up_top_i,ack_up_top_o,req_a,Data_a,ack_a);
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH) FirstStage(reset,req_a,Data_a,ack_a,req_b,Data_b,ack_b);
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH) Interface_dw(reset,req_b,Data_b,ack_b,req_dw_top_o,Data_dw_top_o,ack_dw_top_i);
     
     /*
     //Celement
