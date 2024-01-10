@@ -2,7 +2,7 @@
 
 module TopModule
     #(
-        parameter WORD_WIDTH =32
+			parameter WORD_WIDTH=32
     )
     (
         input reset,
@@ -11,7 +11,7 @@ module TopModule
         //Pipeline
         input  req_up_top_i,
         input [WORD_WIDTH-1:0] Data_up_top_i,
-        output  ack_up_top_o,
+        (* DATAOVERRUN = "yes"*) output  ack_up_top_o,
         
         output  req_dw_top_o,
         output [WORD_WIDTH-1:0] Data_dw_top_o,
@@ -86,7 +86,7 @@ module CInterface(input A_in,output A_out,input B_in, output B_out, input C_in,o
 endmodule
 
 module PInterface#(
-  parameter WORD_WIDTH =8
+			parameter WORD_WIDTH=32
 )
 (
   input  req_up_top_i,
@@ -115,4 +115,5 @@ module PInterface#(
   (* HU_SET = "uset1", RLOC = "X0Y0"*) LUT1#(.INIT(2'b01)) req_1(.O(req),.I0(req_up_top_i));
   (* HU_SET = "uset1", RLOC = "X0Y0", RMP_GRID="GRID"*)LUT1#(.INIT(2'b01)) req_2(.O(req_dw_top_o),.I0(req));
 endmodule
+
 

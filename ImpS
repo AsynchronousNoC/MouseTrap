@@ -6,7 +6,7 @@ proc getAbsRLOC {cell} {
 	return "X${X}Y${Y}"
 	}
 	
-set WIDTH 16
+set WIDTH 32
 
 
 #prepareCodeToRunWithout RLOC

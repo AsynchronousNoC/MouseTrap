@@ -16,20 +16,24 @@ module mousetrap_ldce
   output  logic[WIDTH-1:0] Data_dw_o,
   input   Ack_dw_i
 ) ;
-  localparam[8*10-1:0] DataCellAddress[WIDTH-1:0]= WIDTH=='d8 ? {"X17Y16","X17Y16","X17Y16","X17Y16","X17Y14","X19Y16","X19Y16","X19Y16"} :  
-                                            WIDTH=='d16 ? {"X17Y18","X17Y18","X17Y18","X17Y18","X17Y16","X19Y18","X19Y18","X19Y18","X17Y14","X17Y14","X17Y14","X17Y14","X17Y16","X19Y16","X17Y16","X19Y16"} : 
-                                            WIDTH=='d32 ?  {"X17Y14","X21Y18","X21Y18","X21Y18","X21Y18","X17Y18","X17Y18","X17Y18","X17Y18","X19Y18","X19Y18","X21Y16","X19Y18","X19Y18","X17Y16","X17Y16","X17Y16","X17Y16","X19Y16","X19Y16","X19Y16","X19Y16","X17Y14","X19Y14","X19Y14","X21Y16","X21Y16","X17Y14","X19Y14","X19Y14","X23Y18","X23Y18"}:
-                                            WIDTH=='d64 ?  {"X19Y14","X21Y18","X17Y22","X23Y18","X23Y18","X17Y22","X17Y22","X17Y22","X19Y22","X19Y22","X19Y22","X19Y14","X19Y22","X19Y20","X19Y20","X23Y18","X21Y22","X21Y22","X19Y20","X19Y20","X17Y20","X17Y20","X19Y14","X17Y20","X17Y20","X17Y18","X17Y18","X17Y18","X17Y18","X19Y18","X21Y22","X21Y22","X23Y22","X21Y14","X23Y22","X19Y18","X23Y22","X23Y22","X19Y18","X19Y18","X17Y16","X17Y16","X21Y16","X21Y16","X19Y14","X19Y16","X19Y16","X19Y16","X21Y20","X21Y20","X21Y20","X21Y20","X23Y20","X23Y20","X23Y20","X17Y14","X19Y16","X21Y18","X23Y20","X21Y18","X17Y14","X17Y14","X21Y16","X23Y18"} : {""} ;
- 
-  localparam ReqCellAddress= WIDTH=='d8  ? "X19Y16" : 
-                             WIDTH=='d16 ? "X19Y18" :
-                             WIDTH=='d32 ? "X17Y14" :
-                             WIDTH=='d64 ? "X21Y18" : "";
-                             
-  localparam ReqXorAddress=  WIDTH=='d8  ? "X17Y16" :
-                             WIDTH=='d16 ? "X19Y18" :
-                             WIDTH=='d32 ? "X19Y18" :
-                             WIDTH=='d64 ? "X17Y22" : "";
+  localparam[8*10-1:0] DataCellAddress[WIDTH-1:0]= 
+  WIDTH=='d8 ?  {"X103Y16","X103Y16","X103Y16","X103Y16","X101Y14","X101Y16","X101Y16","X101Y16"} :////8 Bit DataCellAddress
+  WIDTH=='d16 ?  {"X105Y18","X105Y18","X105Y18","X105Y18","X101Y14","X103Y16","X103Y16","X103Y16","X101Y18","X101Y18","X101Y18","X101Y18","X103Y18","X103Y18","X103Y18","X103Y18"} :////16 Bit DataCellAddress
+  WIDTH=='d32 ?  {"X101Y16","X101Y16","X101Y16","X101Y16","X103Y16","X103Y16","X103Y16","X103Y16","X103Y18","X101Y14","X107Y14","X107Y14","X107Y14","X103Y14","X103Y14","X103Y14","X103Y18","X103Y18","X103Y18","X105Y16","X105Y16","X105Y16","X105Y16","X101Y18","X101Y18","X103Y14","X105Y14","X105Y14","X105Y14","X105Y14","X107Y14","X101Y18"} :////32 Bit DataCellAddress
+  WIDTH=='d64 ?  {"X101Y16","X101Y16","X101Y16","X103Y16","X103Y16","X103Y16","X103Y16","X101Y18","X103Y18","X103Y18","X103Y18","X103Y18","X101Y14","X101Y18","X101Y18","X101Y18","X101Y20","X101Y20","X101Y20","X101Y20","X103Y20","X103Y20","X103Y20","X103Y20","X103Y24","X101Y22","X101Y22","X101Y22","X101Y22","X103Y22","X103Y22","X103Y22","X103Y22","X103Y26","X101Y24","X101Y24","X101Y24","X101Y24","X103Y24","X103Y24","X103Y24","X103Y30","X103Y30","X101Y26","X101Y26","X101Y26","X101Y26","X103Y26","X103Y26","X103Y26","X101Y28","X101Y28","X101Y28","X101Y28","X103Y28","X103Y28","X103Y28","X103Y28","X101Y30","X101Y30","X101Y30","X101Y30","X103Y30","X103Y30"} :////64 Bit DataCellAddress
+ {""} ; 
+  localparam ReqCellAddress= 
+  WIDTH=='d8 ?"X101Y16" :////8 Bit ReqCellAddress
+  WIDTH=='d16 ?"X101Y16" :////16 Bit ReqCellAddress
+  WIDTH=='d32 ?"X101Y18" :////32 Bit ReqCellAddress
+  WIDTH=='d64 ?"X101Y16" :////64 Bit ReqCellAddress
+  "";                           
+  localparam ReqXorAddress=  
+  WIDTH=='d8 ?"X103Y16" :////8 Bit ReqXorAddress
+  WIDTH=='d16 ?"X105Y16" :////16 Bit ReqXorAddress
+  WIDTH=='d32 ?"X107Y18" :////32 Bit ReqXorAddress
+  WIDTH=='d64 ?"X103Y16" :////64 Bit ReqXorAddress
+  "";
   logic re,en;
     // importante usare hu_set e non u_set altrimenti la cosa non è gerarchica
     (* HU_SET = "uset0", RLOC = string'(ReqCellAddress) *) LDCE #(

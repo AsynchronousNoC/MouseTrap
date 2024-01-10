@@ -60,6 +60,15 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 	puts $fileDescriptor "\n\n"
 }
 
+proc DataOverrun {Stage1 Stage2 fileDescriptor} {
+	#in questo caso non sto prendendo in considerazione il delay della richiesta anche se in questo caso è 0 quindi non cambierebbe nulla
+	set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets $Stage1/en] ]]
+	set ToXorDelay [get_property DATAPATH_DELAY [get_timing_paths -max_paths 100 -from [get_cells $Stage1/req_latch] -to [get_cells $Stage1/ReqXor]]] 
+	set min_DataOverrun [expr ($ToXorDelay + ($max_enable)*1e-3)]
+	#qua per ora c'è get ports ma come differenziare quando ci vuole una e quando ci vuole get_pins?
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_ports $Stage2\] $min_DataOverrun}]
+	}
+
 #---------------MAIN----------------#
 #Global variables
 	set Mousetrap_name "mousetrap_ldce"
@@ -108,6 +117,20 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 	close $f
 	exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc
 	
+#	set f [open Temp.xdc w+] 
+#	#c'è un modo più intelligente di fare n^2 confronti boh forse
+#	foreach cell $Pipelines {
+#		set endpins [get_property  ENDPOINT_PIN [get_timing_paths -from [get_cells $cell/req_latch] -quiet -max_paths 100]]
+#		foreach pin $endpins {
+#			if { [get_property DATAOVERRUN $pin] == "yes" } {
+#				DataOverrun $cell $pin $f
+#			} 
+#		}
+#	}
+	#chiudo il file e lo muovo nel constraint che uso
+#	close $f
+	#exec mv Temp.xdc ./Sources/Constraints/DataOverrunConstraints.xdc
+	
 #---------Implementazione per rendere corretto il funzionamento
 	set num 0;
 	while { [get_timing_paths -hold -max_paths 100 -slack_lesser_than 0 -quiet] != "" && $num<$Maximum_tries} {
@@ -117,7 +140,13 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 	}
 	
 	open_run impl_1
-	
+
 	set_property is_enabled false [get_files  BundledConstraints.xdc]
 
 
+
+#set paths [get_timing_paths -from [get_cells FirstStage/req_latch] -max_paths 100]
+#foreach path $paths {
+#	regsub {/req_latch/D} [get_property ENDPOINT_PIN $path]  {} Line
+#	if { lsearch $paths $Line } { puts "Bella" }
+ #	}
