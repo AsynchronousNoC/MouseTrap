@@ -3,8 +3,11 @@ proc MaxTimeConstrain {Stage1 Stage2 fileDescriptor} {
 	puts $fileDescriptor [subst "\n\n#Puts max_delay constrain from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
 	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/*.Data_latch/G\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/*.Data_latch/Q\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage2/req_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage1/*.Data_latch/GE\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/Q\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
 	puts $fileDescriptor "\n\n"
 }
 
@@ -34,30 +37,55 @@ proc FixNet {net fileDescriptor} {
 	}
 	
 proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
-	set TimingPaths [get_timing_paths -max_paths 100 -from [get_cells $Stage1/*.Data_latch] -to [get_cells $Stage2/*.Data_latch]]
+	set TimingPaths [get_timing_paths -max_paths 100  -from [get_pins $Stage1/*.Data_latch/Q] -to [get_pins $Stage2/*.Data_latch/D] -hold]
+	set ack_path [get_timing_paths -from [get_pins $Stage2/req_latch/Q] -to [get_pins $Stage1/req_latch/GE] -hold]
+	set closurePathsData [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/Q] -to [get_pins $Stage1/*.Data_latch/GE] -hold]
+	set closurePathsReq [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/Q] -to [get_pins $Stage1/req_latch/GE] -hold]
 	#Ricavo i dati di timing dopo l'ottimizzazione
 	#si ottiene un tempo in nanosecondi
 	set max_Bundled [get_property -max DATAPATH_DELAY $TimingPaths]
-	#non posso utilizzare get_timing_paths perchè latch/G non è un valid endpoint, tempo in picosecondi
-	set max_enable [get_property -max SLOW_MAX [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/*.Data_latch/G]]]
-	set min_enable [get_property -max FAST_MIN [get_net_delays -of_objects [get_nets $Stage1/en] -to [get_pins $Stage1/req_latch/G]]]
+	set max_enable [get_property -max DATAPATH_DELAY $closurePathsData]
+	set min_enable [get_property -max DATAPATH_DELAY $closurePathsReq]
 	
-	set min_Bundled [expr $margine*($max_Bundled + ($max_enable-$min_enable)*1e-3)]
+	set min_Bundled [expr $margine*($max_Bundled + $max_enable-$min_enable)]
 	
 	puts $fileDescriptor [subst "#---------------Set min delay for data latch from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
 	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
-	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] $min_Bundled}]
-
+	#se non si dichiara lo start point con Q, e quindi non si fa il path segmentation non riesce a convergere
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage2/req_latch/D\] $min_Bundled}]
+	
 	#Devo fissare tutte le  net e le celle appartenenti al cammino dei dati una volta che questi sono ottimizzati
 	puts $fileDescriptor [subst "\n\n#Fix Data_latch nets from $Stage1 to $Stage2"]
-		foreach TimingPath $TimingPaths {
-			foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
-			foreach net [get_nets -of_objects $TimingPath] {FixNet $net $fileDescriptor}
-			#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
-			puts $fileDescriptor "\n"
-		}
-	puts $fileDescriptor "\n\n"
+	foreach TimingPath $TimingPaths {
+		foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+		foreach net [get_nets -of_objects $TimingPath] {FixNet $net $fileDescriptor}
+		#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
+		puts $fileDescriptor "\n"
+	}
+	
+	set ack_path [get_timing_paths -from [get_pins $Stage2/req_latch/Q] -to [get_pins $Stage1/req_latch/GE]]
+	set closurePathsData [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/Q] -to [get_pins $Stage1/*.Data_latch/GE]]
+	set closurePathsReq [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/Q] -to [get_pins $Stage1/req_latch/GE]]
+	
+	#se fisso i path poi il router non riesce a funzionare
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/Q\] -to \[get_pins $Stage1/req_latch/GE\] [get_property -max DATAPATH_DELAY $ack_path]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage1/req_latch/GE\] [get_property -max DATAPATH_DELAY $closurePathsReq]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage1/*.Data_latch/GE\] [get_property -max DATAPATH_DELAY $closurePathsData]}]
+	#fisso ack path
+	#foreach cell [get_cells -of_objects $ack_path] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	#foreach net [get_nets -of_objects $ack_path] {FixNet $net $fileDescriptor}
+	#puts $fileDescriptor "\n"
+	#fisso le net interne
+	#foreach closurePathData $closurePathsData {
+	#	foreach cell [get_cells -of_objects $closurePathData] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	#	foreach net [get_nets -of_objects $closurePathData] {FixNet $net $fileDescriptor}
+	#	puts $fileDescriptor "\n"
+	#}
+	#foreach cell [get_cells -of_objects $closurePathsReq] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	#foreach net [get_nets -of_objects $closurePathsReq] {FixNet $net $fileDescriptor}
+	#puts $fileDescriptor "\n\n"
+	
 }
 
 proc DataOverrun {Stage1 Stage2 fileDescriptor} {
@@ -136,10 +164,12 @@ proc DataOverrun {Stage1 Stage2 fileDescriptor} {
 	while { [get_timing_paths -hold -max_paths 100 -slack_lesser_than 0 -quiet] != "" && $num<$Maximum_tries} {
 		reset_run impl_1
 		launch_runs impl_1 -jobs 6
+		wait_on_run impl_1
+		open_run impl_1
 		set num [expr $num+1]
 	}
 	
-	open_run impl_1
+	
 
 	set_property is_enabled false [get_files  BundledConstraints.xdc]
 

@@ -6,7 +6,18 @@ proc getAbsRLOC {cell} {
 	return "X${X}Y${Y}"
 	}
 	
+#procedura per l'ottimizzazione
+proc MaxTimeConstrain {Stage1 fileDescriptor} {
+	puts $fileDescriptor [subst "\n\n#Puts closure time max_delay"]
+	#usando i doppi apici non mi funziona l'escape del carattere
+	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
+	puts $fileDescriptor "\n\n"
+}
+	
 set WIDTH 32
+set Mousetrap_name "mousetrap_ldce_woMacros"
 
 
 #prepareCodeToRunWithout RLOC
@@ -26,12 +37,30 @@ foreach line $data {
 close $f
 exec mv Temp.sv ./Sources/Design/TopModule.sv
 
+
+
 #run implementation with pblock
-set_property is_enabled true [get_files  DefineImplConstraints.xdc]
+set_property is_enabled true [get_files  DefineImplBoundaries.xdc]
 reset_run synth_1
+launch_runs synth_1 -jobs 6
+wait_on_run synth_1
+	
+#open_run synth_1 -name synth_1	
+#set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
+#set f [open Temp.xdc w+] 
+#c'è un modo più intelligente di fare n^2 confronti boh forse
+#foreach cell $Pipelines {
+#	MaxTimeConstrain $cell $f
+#}
+#chiudo il file e lo muovo nel constraint che uso
+#close $f
+#exec mv Temp.xdc ./Sources/Constraints/DefineImplConstraints.xdc
+	
+#set_property is_enabled true [get_files  DefineImplConstraints.xdc]
 launch_runs impl_1 -jobs 6
 wait_on_run impl_1
-set_property is_enabled false [get_files  DefineImplConstraints.xdc]
+#set_property is_enabled false [get_files  DefineImplConstraints.xdc]
+set_property is_enabled false [get_files  DefineImplBoundaries.xdc]
 
 #write back file with RLOX
 set f [open Temp.sv w+] 
@@ -78,8 +107,10 @@ close $f
 exec mv Temp.sv ./Sources/Design/Mousetrap.sv
 
 
+
+
 #lunch new implementation with new positions
-reset_run synth_1
-launch_runs impl_1 -jobs 6
-wait_on_run impl_1
+#reset_run synth_1
+#launch_runs impl_1 -jobs 6
+#wait_on_run impl_1
 

@@ -14,7 +14,8 @@ module mousetrap_ldce
   
   output  Req_dw_o,
   output  logic[WIDTH-1:0] Data_dw_o,
-  input   Ack_dw_i
+  input   Ack_dw_i,
+  input gen_enable
 ) ;
   localparam[8*10-1:0] DataCellAddress[WIDTH-1:0]= 
   WIDTH=='d8 ?  {"X103Y16","X103Y16","X103Y16","X103Y16","X101Y14","X101Y16","X101Y16","X101Y16"} :////8 Bit DataCellAddress
@@ -45,8 +46,8 @@ module mousetrap_ldce
         .Q(re),     // 1-bit output: Data
         .CLR(rst), // 1-bit input: Asynchronous clear
         .D(Req_up_i),     // 1-bit input: Data
-        .G(en),     // 1-bit input: Gate
-        .GE(1'b1)    // 1-bit input: Gate enable
+        .G(gen_enable),     // 1-bit input: Gate
+        .GE(en)    // 1-bit input: Gate enable
     );
     genvar i;
     generate
@@ -60,8 +61,8 @@ module mousetrap_ldce
             .Q(Data_dw_o[i]),     // 1-bit output: Data
             .CLR(rst), // 1-bit input: Asynchronous clear
             .D(Data_up_i[i]),     // 1-bit input: Data
-            .G(en),     // 1-bit input: Gate
-            .GE(1'b1)    // 1-bit input: Gate enable
+            .G(gen_enable),     // 1-bit input: Gate
+            .GE(en)    // 1-bit input: Gate enable
           );
         end
      endgenerate;
@@ -86,7 +87,8 @@ module mousetrap_ldce_woMacros
   
   output  Req_dw_o,
   output  logic[WIDTH-1:0] Data_dw_o,
-  input   Ack_dw_i
+  input   Ack_dw_i,
+  input gen_enable
 ) ;
   logic re,en;
     // importante usare hu_set e non u_set altrimenti la cosa non è gerarchica
@@ -99,8 +101,8 @@ module mousetrap_ldce_woMacros
         .Q(re),     // 1-bit output: Data
         .CLR(rst), // 1-bit input: Asynchronous clear
         .D(Req_up_i),     // 1-bit input: Data
-        .G(en),     // 1-bit input: Gate
-        .GE(1'b1)    // 1-bit input: Gate enable
+        .G(gen_enable),     // 1-bit input: Gate
+        .GE(en)    // 1-bit input: Gate enable
     );
     genvar i;
     generate
@@ -114,8 +116,8 @@ module mousetrap_ldce_woMacros
             .Q(Data_dw_o[i]),     // 1-bit output: Data
             .CLR(rst), // 1-bit input: Asynchronous clear
             .D(Data_up_i[i]),     // 1-bit input: Data
-            .G(en),     // 1-bit input: Gate
-            .GE(1'b1)    // 1-bit input: Gate enable
+            .G(gen_enable),     // 1-bit input: Gate
+            .GE(en)    // 1-bit input: Gate enable
           );
         end
      endgenerate;
@@ -125,3 +127,11 @@ module mousetrap_ldce_woMacros
   	assign Req_dw_o = re;
 	  assign Ack_up_o = re;
 endmodule
+
+
+
+
+
+
+
+
