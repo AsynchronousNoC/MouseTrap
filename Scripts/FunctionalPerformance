@@ -51,14 +51,14 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 		puts $fileDescriptor "\n"
 	}
 	
-	set ack_path [get_timing_paths -from [get_pins $Stage2/req_latch/Q] -to [get_pins $Stage1/req_latch/GE]]
-	set closurePathsData [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE]]
+	set ack_path [get_timing_paths -from [get_pins $Stage2/req_latch/G] -to [get_pins $Stage1/req_latch/GE]]
+	set closurePathsData  [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE]]
 	set closurePathsReq [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/req_latch/GE]]
 	
 	#se fisso i path poi il router non riesce a funzionare
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [get_property -max DATAPATH_DELAY $ack_path]}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [get_property -max DATAPATH_DELAY $closurePathsReq]}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [get_property -max DATAPATH_DELAY $closurePathsData]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine*[get_property -max DATAPATH_DELAY $ack_path]]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [expr 0.205+$margine*[get_property -max DATAPATH_DELAY $closurePathsData]]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine*[get_property -max DATAPATH_DELAY $closurePathsReq]]}]
 }
 
 #---------------MAIN----------------#
