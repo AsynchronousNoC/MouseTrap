@@ -23,7 +23,7 @@ proc FixNet {net fileDescriptor} {
 	puts $fileDescriptor $line;
 	}
 	
-proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
+proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine_low margine_up} {
 	set TimingPaths [get_timing_paths -max_paths 100  -from [get_pins $Stage1/*.Data_latch/G] -to [get_pins $Stage2/*.Data_latch/D] -hold]
 	set ack_path [get_timing_paths -from [get_pins $Stage2/req_latch/G] -to [get_pins $Stage1/req_latch/GE] -hold]
 	set closurePathsData [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE] -hold]
@@ -34,7 +34,7 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 	set max_enable [get_property -max DATAPATH_DELAY $closurePathsData]
 	set min_enable [get_property -max DATAPATH_DELAY $closurePathsReq]
 	
-	set min_Bundled [expr $margine*($max_Bundled + $max_enable-$min_enable)]
+	set min_Bundled [expr $margine_low*($max_Bundled + $max_enable-$min_enable)]
 	
 	puts $fileDescriptor [subst "#---------------Set min delay for data latch from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
@@ -51,21 +51,31 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 		puts $fileDescriptor "\n"
 	}
 	
+	set TimingPaths [get_timing_paths -max_paths 100  -from [get_pins $Stage1/*.Data_latch/G] -to [get_pins $Stage2/*.Data_latch/D]]
 	set ack_path [get_timing_paths -from [get_pins $Stage2/req_latch/G] -to [get_pins $Stage1/req_latch/GE]]
 	set closurePathsData  [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE]]
 	set closurePathsReq [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/req_latch/GE]]
+	set ack_time [get_property -max DATAPATH_DELAY $ack_path]
+	set max_Bundled [get_property -max DATAPATH_DELAY $TimingPaths]
+	set max_enable [get_property -max DATAPATH_DELAY $closurePathsData]
+	set min_enable [get_property -max DATAPATH_DELAY $closurePathsReq]
+	
+	set max_Bundled [expr $margine_up*($max_Bundled + $max_enable-$min_enable)]
 	
 	#se fisso i path poi il router non riesce a funzionare
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine*[get_property -max DATAPATH_DELAY $ack_path]]}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [expr 0.205+$margine*[get_property -max DATAPATH_DELAY $closurePathsData]]}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine*[get_property -max DATAPATH_DELAY $closurePathsReq]]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine_low*$ack_time]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [expr 0.205+$margine_low*$max_enable]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine_low*$min_enable]}]
+	
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] [expr 0.205+$max_Bundled]}]
 }
 
 #---------------MAIN----------------#
 #Global variables
 	set Mousetrap_name "mousetrap_ldce"
 	set Maximum_tries 10
-	set margine 1.1
+	set margine_low 1.1
+	set margine_up 1.5
 
 
 	open_run impl_1
@@ -76,7 +86,7 @@ proc MinTimeConstrain {Stage1 Stage2 fileDescriptor margine} {
 		foreach cellInter $Pipelines {
 			set Coppia [get_timing_paths -from [get_cells $cell/*.Data_latch] -to [get_cells $cellInter/*.Data_latch] -quiet]
 			if {$Coppia != ""} {
-				MinTimeConstrain $cell $cellInter $f $margine
+				MinTimeConstrain $cell $cellInter $f $margine_low $margine_up
 			}
 		}
 	}

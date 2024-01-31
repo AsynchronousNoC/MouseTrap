@@ -230,6 +230,7 @@ set_property FIXED_ROUTE { { CLBLL_L_DQ CLBLL_LOGIC_OUTS3 SE2BEG3 SW2BEG3 SL1BEG
 set_max_delay -from [get_pins Stadio_2/req_latch/G] -to [get_pins Stadio_1/req_latch/GE] 2.5271000000000003
 set_max_delay -from [get_pins Stadio_1/req_latch/G] -to [get_pins Stadio_1/*.Data_latch/GE] 2.8043000000000005
 set_max_delay -from [get_pins Stadio_1/req_latch/G] -to [get_pins Stadio_1/req_latch/GE] 2.1454
+set_max_delay -from [get_pins Stadio_1/req_latch/G] -to [get_pins Stadio_2/req_latch/D] 2.98
 #---------------Set min delay for data latch from Stadio_2 to Stadio_3
 set_min_delay -from [get_pins Stadio_2/req_latch/G] -to [get_pins Stadio_3/req_latch/D] 0.7458
 
@@ -462,3 +463,4 @@ set_property FIXED_ROUTE { { CLBLL_LL_AQ CLBLL_LOGIC_OUTS4 EE2BEG0 NE2BEG0 NR1BE
 set_max_delay -from [get_pins Stadio_3/req_latch/G] -to [get_pins Stadio_2/req_latch/GE] 2.5249
 set_max_delay -from [get_pins Stadio_2/req_latch/G] -to [get_pins Stadio_2/*.Data_latch/GE] 2.8978
 set_max_delay -from [get_pins Stadio_2/req_latch/G] -to [get_pins Stadio_2/req_latch/GE] 2.2026000000000003
+set_max_delay -from [get_pins Stadio_2/req_latch/G] -to [get_pins Stadio_3/req_latch/D] 3.031
