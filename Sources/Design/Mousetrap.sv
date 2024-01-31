@@ -35,7 +35,7 @@ module mousetrap_ldce
   WIDTH=='d32 ?"X107Y18" :////32 Bit ReqXorAddress
   WIDTH=='d64 ?"X103Y16" :////64 Bit ReqXorAddress
   "";
-  logic re,en;
+  logic re,en,gen_enable_1;
     // importante usare hu_set e non u_set altrimenti la cosa non è gerarchica
     (* HU_SET = "uset0", RLOC = string'(ReqCellAddress) *) LDCE #(
         .INIT(1'b0),            // Initial value of latch, 1'b0, 1'b1
@@ -46,7 +46,7 @@ module mousetrap_ldce
         .Q(re),     // 1-bit output: Data
         .CLR(rst), // 1-bit input: Asynchronous clear
         .D(Req_up_i),     // 1-bit input: Data
-        .G(gen_enable),     // 1-bit input: Gate
+        .G(gen_enable_1),     // 1-bit input: Gate
         .GE(en)    // 1-bit input: Gate enable
     );
     genvar i;
@@ -61,7 +61,7 @@ module mousetrap_ldce
             .Q(Data_dw_o[i]),     // 1-bit output: Data
             .CLR(rst), // 1-bit input: Asynchronous clear
             .D(Data_up_i[i]),     // 1-bit input: Data
-            .G(gen_enable),     // 1-bit input: Gate
+            .G(gen_enable_1),     // 1-bit input: Gate
             .GE(en)    // 1-bit input: Gate enable
           );
         end
@@ -69,6 +69,7 @@ module mousetrap_ldce
      
      //xor(en =~ (ReqOut ^ AckOut);
     (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT2 #(.INIT(4'h9)) ReqXor(.O(en), .I0(Req_dw_o), .I1(Ack_dw_i));
+    (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT2 #(.INIT(4'h9)) ReqXor_1(.O(gen_enable_1), .I0(Req_dw_o), .I1(Ack_dw_i));
   	assign Req_dw_o = re;
 	  assign Ack_up_o = re;
 endmodule

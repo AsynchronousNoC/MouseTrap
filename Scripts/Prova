@@ -1,0 +1,47 @@
+#---------------MAIN----------------#
+#Global variables
+	set Mousetrap_name "mousetrap_ldce"
+	set Maximum_tries 10
+	set margine 1.1
+
+
+#---------run synthesis
+	reset_run synth_1
+	launch_runs synth_1 -jobs 6
+	wait_on_run synth_1
+
+#---------Ottimizzazione
+	source Scripts/MaxPerformance
+	set_property is_enabled true [get_files  BundledConstraints.xdc]
+	
+	#implementazione
+	launch_runs impl_1 -jobs 6
+	wait_on_run impl_1
+#---------Robustezza
+	#---------Preparazione Constrain File
+	open_run impl_1
+	source Scripts/FunctionalPerformance
+	
+
+	
+#---------Implementazione per rendere corretto il funzionamento
+	set num 0;
+	while { [get_timing_paths -hold -max_paths 100 -slack_lesser_than 0 -quiet] != "" && $num<$Maximum_tries} {
+		reset_run impl_1
+		launch_runs impl_1 -jobs 6
+		wait_on_run impl_1
+		open_run impl_1
+		set num [expr $num+1]
+	}
+	
+	
+
+	set_property is_enabled false [get_files  BundledConstraints.xdc]
+
+
+
+#set paths [get_timing_paths -from [get_cells FirstStage/req_latch] -max_paths 100]
+#foreach path $paths {
+#	regsub {/req_latch/D} [get_property ENDPOINT_PIN $path]  {} Line
+#	if { lsearch $paths $Line } { puts "Bella" }
+ #	}
