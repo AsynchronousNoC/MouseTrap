@@ -8,14 +8,14 @@ foreach Pipe $Pipelines {
 	set Time10 [get_property SLOW_MAX -max [get_net_delays -of_objects [get_nets $Pipe/Req_dw_o] -to [get_pins $Pipe/ReqXor/I0]]]
 	set Time20 [get_property SLOW_MAX -max [get_net_delays -of_objects [get_nets $Pipe/Req_dw_o] -to [get_pins $Pipe/ReqXor_1/I0]]]
 	set Time1 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/en] -to [get_pins $Pipe/req_latch/GE]]]
-	set Time2 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/gen_enable_1] -to [get_pins $Pipe/req_latch/G]]]
+	set Time2 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/gen_enable] -to [get_pins $Pipe/req_latch/G]]]
 	puts -nonewline $f [subst "Richiesta->\t"]
 	set err [expr $Time10-$Time20+$Time1 - $Time2]
 	puts $f $err 
 	for {set i 0} { $i < 32} {incr i} {
 		puts -nonewline $f [subst "Linea $i->\t"]
 		set Time1 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/en] -to [get_pins $Pipe/genblk1[$i].Data_latch/GE]]]
-		set Time2 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/gen_enable_1] -to [get_pins $Pipe/genblk1[$i].Data_latch/G]]]	
+		set Time2 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/gen_enable] -to [get_pins $Pipe/genblk1[$i].Data_latch/G]]]	
 		set err [expr $Time10-$Time20+$Time1 - $Time2]
 		puts $f $err 
 	}

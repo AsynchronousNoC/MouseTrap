@@ -5,7 +5,6 @@ module TopModule
 			parameter WORD_WIDTH=32
     )
     (
-        input gen_enable,
         input reset,
         
         
@@ -33,14 +32,16 @@ module TopModule
     );
     
     //Pipeline
-    (* DONT_TOUCH = "yes"*)  logic req_a,req_b,ack_a,ack_b,ack_middle;
-    logic[WORD_WIDTH-1:0] Data_a,Data_b;
-    (* DONT_TOUCH = "yes"*) LUT1#(.INIT(2'b10)) req_1(.O(ack_up_top_o),.I0(ack_middle));   //FUNZIA!
+    (* DONT_TOUCH = "yes"*)  logic req_1,req_2,ack_2,ack_3,ack_1;
+    logic[WORD_WIDTH-1:0] Data_1_in,Data_1_out,Data_2_in,Data_2_out;
+    (* DONT_TOUCH = "yes"*) LUT1#(.INIT(2'b10)) req_delay(.O(ack_up_top_o),.I0(ack_1));   //FUNZIA!
      
     //for word_width<32:"X0Y0""X4Y0""X6Y0", else "X0Y0","X8Y0","X12Y0"
-    (* DONT_TOUCH = "yes", U_SET="prova", RLOC ="X0Y0" *) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_1(reset,req_up_top_i,Data_up_top_i,ack_middle,req_a,Data_a,ack_a,gen_enable);
-    (* DONT_TOUCH = "yes", U_SET="prova", RLOC ="X8Y8" *) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_2(reset,req_a,Data_a,ack_a,req_b,Data_b,ack_b,gen_enable);
-    (* DONT_TOUCH = "yes", U_SET="prova", RLOC ="X16Y16" *) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_3(reset,req_b,Data_b,ack_b,req_dw_top_o,Data_dw_top_o,ack_dw_top_i,gen_enable);
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_1(reset,req_up_top_i,Data_up_top_i,ack_1,req_1,Data_1_in,ack_2);
+    //assign Data_1_out = ~Data_1_in; 
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_2(reset,req_1,Data_1_in,ack_2,req_2,Data_2_in,ack_3);
+    //assign Data_2_out = ~Data_2_in;
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_3(reset,req_2,Data_2_in,ack_3,req_dw_top_o,Data_dw_top_o,ack_dw_top_i);
     
     /*
     //Celement
