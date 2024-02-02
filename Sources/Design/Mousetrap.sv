@@ -67,8 +67,8 @@ module mousetrap_ldce
      endgenerate;
      
      //xor(en =~ (ReqOut ^ AckOut);
-    (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT2 #(.INIT(4'h9)) ReqXor(.O(en), .I0(Req_dw_o), .I1(Ack_dw_i));
-    (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT2 #(.INIT(4'h9)) ReqXor_1(.O(gen_enable), .I0(Req_dw_o), .I1(Ack_dw_i));
+    (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT6_2 #(.INIT(64'h9)) ReqXor(.O5(en), .O6(gen_enable),.I0(Req_dw_o), .I1(Ack_dw_i));
+    //(* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT2 #(.INIT(4'h9)) ReqXor_1(.O(gen_enable), .I0(Req_dw_o), .I1(Ack_dw_i));
   	assign Req_dw_o = re;
 	  assign Ack_up_o = re;
 endmodule

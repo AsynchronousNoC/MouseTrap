@@ -37,9 +37,7 @@ module Testbench_Moustrap(
      task InputSend(input[WORD_WIDTH-1:0] Value);  
         begin
             wait(ack_in_top==req_in_top);
-            #15
             Data_in__top<=Value;
-            #2
             req_in_top <=~req_in_top;
             #1;
          end
