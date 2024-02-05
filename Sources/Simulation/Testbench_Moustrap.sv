@@ -23,7 +23,6 @@ module Testbench_Moustrap(
      wire req_out_top;
      wire[WORD_WIDTH-1:0] Data_out__top;
      logic ack_out_top;
-   
      
      TopModule#(WORD_WIDTH) myModule(reset,req_in_top,Data_in__top,ack_in_top,req_out_top,Data_out__top,ack_out_top);
      task OutputCheck();  
