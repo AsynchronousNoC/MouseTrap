@@ -16,7 +16,7 @@ proc MaxTimeConstrain {Stage1 fileDescriptor} {
 	puts $fileDescriptor "\n\n"
 }
 	
-set WIDTH 32
+set WIDTH 128
 set Mousetrap_name "mousetrap_ldce_woMacros"
 
 
@@ -45,28 +45,33 @@ reset_run synth_1
 launch_runs synth_1 -jobs 6
 wait_on_run synth_1
 	
-#open_run synth_1 -name synth_1	
-#set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
-#set f [open Temp.xdc w+] 
-#c'è un modo più intelligente di fare n^2 confronti boh forse
-#foreach cell $Pipelines {
-#	MaxTimeConstrain $cell $f
-#}
+open_run synth_1 -name synth_1	
+set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
+set f [open Temp.xdc w+] 
+foreach cell $Pipelines {
+	MaxTimeConstrain $cell $f
+}
 #chiudo il file e lo muovo nel constraint che uso
-#close $f
-#exec mv Temp.xdc ./Sources/Constraints/DefineImplConstraints.xdc
+close $f
+exec mv Temp.xdc ./Sources/Constraints/DefineImplConstraints.xdc
 	
-#set_property is_enabled true [get_files  DefineImplConstraints.xdc]
+set_property is_enabled true [get_files  DefineImplConstraints.xdc]
 launch_runs impl_1 -jobs 6
 wait_on_run impl_1
-#set_property is_enabled false [get_files  DefineImplConstraints.xdc]
+set_property is_enabled false [get_files  DefineImplConstraints.xdc]
 set_property is_enabled false [get_files  DefineImplBoundaries.xdc]
 
-#write back file with RLOX
+#prepareCodeToRunWithout RLOC
+set f [open ./Sources/Design/TopModule.sv r]
+set file_data [read $f]
+close $f
 set f [open Temp.sv w+] 
+set data [split $file_data "\n"]
 foreach line $data {
-	if { [regexp -all "parameter WORD_WIDTH" $line] } {
-		set line [subst "\t\t\tparameter WORD_WIDTH=$WIDTH"]
+	if { [regexp -all "mousetrap_ldce_woMacros" $line] } { 
+		regsub -all "mousetrap_ldce_woMacros" $line "mousetrap_ldce" line
+	} elseif { [regexp -all "parameter WORD_WIDTH" $line] } {
+		set line [subst "parameter WORD_WIDTH=$WIDTH"]
 	}
 		puts $f $line
 }
@@ -76,15 +81,15 @@ exec mv Temp.sv ./Sources/Design/TopModule.sv
 #get implementation positions
 #dataLath positions
 open_run impl_1
-set Datalatch  [subst "  WIDTH=='d$WIDTH ?  {\""];append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] 0]]; append Datalatch "\""
-for {set x 1} {$x<$WIDTH} {incr x} {append Datalatch ",\"";append Datalatch [getAbsRLOC [lindex [get_cells FirstStage/*.Data_latch] $x]];append Datalatch  "\""}
-append Datalatch "} :";append Datalatch  [subst "////$WIDTH Bit DataCellAddress"]
+set Datalatch  [subst "  WIDTH=='d$WIDTH ?  {\""];append Datalatch [getAbsRLOC [lindex [get_cells *.Stadio_2/*.Data_latch] 0]]; append Datalatch "\""
+for {set x 1} {$x<$WIDTH} {incr x} {append Datalatch ",\"";append Datalatch [getAbsRLOC [lindex [get_cells *.Stadio_2/*.Data_latch] $x]];append Datalatch  "\""}
+append Datalatch "} :";append Datalatch  [subst "//$WIDTH Bit DataCellAddress"]
 
 #reqLath positions
-set ReqLatch  [subst "  WIDTH=='d$WIDTH ?\""];append ReqLatch [getAbsRLOC [lindex [get_cells FirstStage/req_latch] 0]]; append ReqLatch "\" :";;append ReqLatch  [subst "////$WIDTH Bit ReqCellAddress"]
+set ReqLatch  [subst "  WIDTH=='d$WIDTH ?\""];append ReqLatch [getAbsRLOC [lindex [get_cells *.Stadio_2/req_latch] 0]]; append ReqLatch "\" :";append ReqLatch  [subst "//$WIDTH Bit ReqCellAddress"]
 
 #LUT position
-set ReqLut  [subst "  WIDTH=='d$WIDTH ?\""];append ReqLut [getAbsRLOC [lindex [get_cells FirstStage/ReqXor] 0]]; append ReqLut "\" :";;append ReqLut  [subst "////$WIDTH Bit ReqXorAddress"]
+set ReqLut  [subst "  WIDTH=='d$WIDTH ?\""];append ReqLut [getAbsRLOC [lindex [get_cells *.Stadio_2/ReqXor] 0]]; append ReqLut "\" :";append ReqLut  [subst "//$WIDTH Bit ReqXorAddress"]
 
 #write new positions to file
 set f [open ./Sources/Design/Mousetrap.sv r]

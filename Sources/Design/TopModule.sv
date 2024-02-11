@@ -2,7 +2,7 @@
 
 module TopModule
     #(
-			parameter WORD_WIDTH=32
+parameter WORD_WIDTH=128
     )
     (
         input reset,
@@ -30,20 +30,27 @@ module TopModule
         output enB
         */
     );
+    //localparam N = 2;
+    localparam N = 10;
     
     //Pipeline
-    (* DONT_TOUCH = "yes"*)  logic req_1,req_2,ack_2,ack_3,ack_1;
-    (* DONT_TOUCH = "yes"*) logic ack_delay_1,ack_delay_2;
-    logic[WORD_WIDTH-1:0] Data_1_in,Data_1_out,Data_2_in,Data_2_out;
+    (* DONT_TOUCH = "yes"*)  logic ack_1;
+    (* DONT_TOUCH = "yes"*) logic ack_delay_1;
     (* DONT_TOUCH = "yes", U_SET = "Prova", RLOC ="X0Y0"*) LUT1#(.INIT(2'b10)) req_delay_1(.O(ack_delay_1),.I0(ack_1));   //FUNZIA!
-    (* DONT_TOUCH = "yes",U_SET = "Prova", RLOC ="X0Y1"*) LUT1#(.INIT(2'b10)) req_delay_2(.O(ack_delay_2),.I0(ack_delay_1));   //FUNZIA!
-    (* DONT_TOUCH = "yes",U_SET = "Prova", RLOC ="X0Y2"*) LUT1#(.INIT(2'b10)) req_delay_3(.O(ack_up_top_o),.I0(ack_delay_2));   //FUNZIA!
-    //for word_width<32:"X0Y0""X4Y0""X6Y0", else "X0Y0","X8Y0","X12Y0"
-    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_1(reset,req_up_top_i,Data_up_top_i,ack_1,req_1,Data_1_in,ack_2);
-    //assign Data_1_out = ~Data_1_in; 
-    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_2(reset,req_1,Data_1_in,ack_2,req_2,Data_2_in,ack_3);
-    //assign Data_2_out = ~Data_2_in;
-    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_3(reset,req_2,Data_2_in,ack_3,req_dw_top_o,Data_dw_top_o,ack_dw_top_i);
+    (* DONT_TOUCH = "yes",U_SET = "Prova", RLOC ="X0Y1"*) LUT1#(.INIT(2'b10)) req_delay_2(.O(ack_up_top_o),.I0(ack_delay_1));   //FUNZIA!
+     
+     
+     
+    logic[N-1:0] req,ack;
+    logic[WORD_WIDTH-1:0] Data[N-1:0];
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_1(reset,req_up_top_i,Data_up_top_i,ack_1,req[0],Data[0],ack[0]);
+    genvar i;
+    generate
+      for(i=0;i<N-1;i++) begin
+      (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_2(reset,req[i],Data[i],ack[i],req[i+1],Data[i+1],ack[i+1]);
+      end
+    endgenerate
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_3(reset,req[N-1],Data[N-1],ack[N-1],req_dw_top_o,Data_dw_top_o,ack_dw_top_i);
     
     /*
     //Celement
@@ -90,7 +97,7 @@ module CInterface(input A_in,output A_out,input B_in, output B_out, input C_in,o
 endmodule
 
 module PInterface#(
-			parameter WORD_WIDTH=32
+parameter WORD_WIDTH=128
 )
 (
   input  req_up_top_i,
@@ -119,6 +126,14 @@ module PInterface#(
   (* HU_SET = "uset1", RLOC = "X0Y0"*) LUT1#(.INIT(2'b01)) req_1(.O(req),.I0(req_up_top_i));
   (* HU_SET = "uset1", RLOC = "X0Y0", RMP_GRID="GRID"*)LUT1#(.INIT(2'b01)) req_2(.O(req_dw_top_o),.I0(req));
 endmodule
+
+
+
+
+
+
+
+
 
 
 

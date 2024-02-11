@@ -65,8 +65,8 @@ proc ClosureAckCon {Stage1 fileDescriptor margine_low} {
 	set max_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsData 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsData 1]]]
 	set min_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 1]]]
 	#se fisso i path poi il router non riesce a funzionare
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [expr 0.205+$margine_low*[lindex $max_enable 1]]}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.205+$margine_low*[lindex $min_enable 1]]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [expr 0.250+$margine_low*[lindex $max_enable 1]]}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.250+$margine_low*[lindex $min_enable 1]]}]
 	
 	set TimingPaths [list [get_timing_paths -max_paths 100  -through [get_pins $Stage1/Req_up_i] -hold] [get_timing_paths -max_paths 100  -through [get_pins $Stage1/Req_up_i]]]
 	set ack_path [list [get_timing_paths -through [get_pins $Stage1/Ack_up_o] -hold] [get_timing_paths -through [get_pins $Stage1/Ack_up_o]]]
@@ -76,7 +76,7 @@ proc ClosureAckCon {Stage1 fileDescriptor margine_low} {
 	set MinTime_1 [expr 1.5*(max([lindex $max_enable 1],[lindex $min_enable 1]) - [get_property -max DATAPATH_DELAY [lindex $TimingPaths 1]])]
 	
 	puts $fileDescriptor [subst {set_min_delay -through \[get_pins $Stage1/Ack_up_o\] $MinTime}]
-	puts $fileDescriptor [subst {set_max_delay -through \[get_pins $Stage1/Ack_up_o\] [expr max(0.205+$margine_low*[lindex $ack_time 1],$MinTime_1) ]}]
+	puts $fileDescriptor [subst {set_max_delay -through \[get_pins $Stage1/Ack_up_o\] [expr max(0.250+1.5*[lindex $ack_time 1],$MinTime_1) ]}]
 }
 #---------------MAIN----------------#
 #Global variables

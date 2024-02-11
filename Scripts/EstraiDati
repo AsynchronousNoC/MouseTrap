@@ -2,22 +2,34 @@ set Mousetrap_name "mousetrap_ldce"
 set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
 set systemTime [clock seconds]
 set Time [clock format $systemTime -format %d:%m:_%H:%M:%S]
+set reqData_time  {}
+set req_time {}
+set ack_time {}
+set closure_time {}
 set f [open Dati/Tempi[$Time].xdc w+] 
 foreach Pipe $Pipelines {
-	puts $f $Pipe
-	set Time10 [get_property SLOW_MAX -max [get_net_delays -of_objects [get_nets $Pipe/Req_dw_o] -to [get_pins $Pipe/ReqXor/I0]]]
-	set Time20 [get_property SLOW_MAX -max [get_net_delays -of_objects [get_nets $Pipe/Req_dw_o] -to [get_pins $Pipe/ReqXor_1/I0]]]
-	set Time1 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/en] -to [get_pins $Pipe/req_latch/GE]]]
-	set Time2 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/gen_enable] -to [get_pins $Pipe/req_latch/G]]]
-	puts -nonewline $f [subst "Richiesta->\t"]
-	set err [expr $Time10-$Time20+$Time1 - $Time2]
-	puts $f $err 
-	for {set i 0} { $i < 32} {incr i} {
-		puts -nonewline $f [subst "Linea $i->\t"]
-		set Time1 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/en] -to [get_pins $Pipe/genblk1[$i].Data_latch/GE]]]
-		set Time2 [get_property SLOW_MAX [get_net_delays -of_objects [get_nets $Pipe/gen_enable] -to [get_pins $Pipe/genblk1[$i].Data_latch/G]]]	
-		set err [expr $Time10-$Time20+$Time1 - $Time2]
-		puts $f $err 
-	}
+	set WIDTH [llength [get_timing_path -max_paths 500 -through [get_pins $Pipe/Data_dw_o]]]
+	lappend reqData_time [get_property DATAPATH_DELAY -max [get_timing_path -max_paths 500 -through [get_pins $Pipe/Data_dw_o]]]
+	lappend req_time [get_property DATAPATH_DELAY -max [get_timing_path -max_paths 500 -through [get_pins $Pipe/Req_dw_o]]]
+	lappend ack_time [get_property DATAPATH_DELAY -max [get_timing_path -max_paths 500 -through [get_pins $Pipe/Ack_up_o]]]
+	lappend closure_time [get_property DATAPATH_DELAY -max [get_timing_path -max_paths 500 -from [get_pins $Pipe/req_latch/G] -to [get_pins $Pipe/req_latch/GE]]]
+	lappend closure_timeData [get_property DATAPATH_DELAY -max [get_timing_path -max_paths 500 -from [get_pins $Pipe/req_latch/G] -to [get_pins $Pipe/*.Data_latch/GE]]]
 }
+puts $f $WIDTH
+puts $f "\n\nreq_data_times"
+puts $f $reqData_time
+puts $f [tcl::mathfunc::max {*}$reqData_time]
+puts $f "\n\nreq_times"
+puts $f $req_time
+puts $f [tcl::mathfunc::max {*}$req_time]
+puts $f "\n\nack_times"
+puts $f $ack_time
+puts $f [tcl::mathfunc::max {*}$ack_time]
+puts $f "\n\nclosureTimesreq"
+puts $f $closure_time
+puts $f [tcl::mathfunc::max {*}$closure_time]
+puts $f "\n\nclosureTimesData"
+puts $f $closure_timeData
+puts $f [tcl::mathfunc::max {*}$closure_timeData]
+
 close $f
