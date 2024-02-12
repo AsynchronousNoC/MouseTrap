@@ -30,8 +30,8 @@ parameter WORD_WIDTH=32
         output enB
         */
     );
-    localparam N = 2;
-    //localparam N = 10;
+    //localparam N = 2;
+    localparam N = 10;
     
     //Pipeline
     (* DONT_TOUCH = "yes"*)  logic ack_1;
