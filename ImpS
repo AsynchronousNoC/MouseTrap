@@ -16,7 +16,7 @@ proc MaxTimeConstrain {Stage1 fileDescriptor} {
 	puts $fileDescriptor "\n\n"
 }
 	
-set WIDTH 128
+set WIDTH 32
 set Mousetrap_name "mousetrap_ldce_woMacros"
 
 
@@ -79,14 +79,21 @@ close $f
 exec mv Temp.sv ./Sources/Design/TopModule.sv
 
 #get implementation positions
-#dataLath positions
+#dataLatch positions
 open_run impl_1
 set Datalatch  [subst "  WIDTH=='d$WIDTH ?  {\""];append Datalatch [getAbsRLOC [lindex [get_cells *.Stadio_2/*.Data_latch] 0]]; append Datalatch "\""
 for {set x 1} {$x<$WIDTH} {incr x} {append Datalatch ",\"";append Datalatch [getAbsRLOC [lindex [get_cells *.Stadio_2/*.Data_latch] $x]];append Datalatch  "\""}
 append Datalatch "} :";append Datalatch  [subst "//$WIDTH Bit DataCellAddress"]
 
+#dataLatchBELS
+set DataBELS [subst "  WIDTH=='d$WIDTH ?  {\""];append DataBELS [lindex [split [get_property BEL [lindex [get_cells *.Stadio_2/*.Data_latch] 0]] "."] 1]; append DataBELS "\""
+for {set x 1} {$x<$WIDTH} {incr x} {append DataBELS ",\"";append DataBELS  [lindex [split [get_property BEL [lindex [get_cells *.Stadio_2/*.Data_latch] $x]] "."] 1];append DataBELS  "\""}
+append DataBELS "} :";append DataBELS  [subst "//$WIDTH Bit DataCellBELL"]
+
 #reqLath positions
-set ReqLatch  [subst "  WIDTH=='d$WIDTH ?\""];append ReqLatch [getAbsRLOC [lindex [get_cells *.Stadio_2/req_latch] 0]]; append ReqLatch "\" :";append ReqLatch  [subst "//$WIDTH Bit ReqCellAddress"]
+set ReqLatch [subst "  WIDTH=='d$WIDTH ?\""];append ReqLatch [getAbsRLOC [lindex [get_cells *.Stadio_2/req_latch] 0]]; append ReqLatch "\" :";append ReqLatch  [subst "//$WIDTH Bit ReqCellAddress"]
+
+set ReqBELL [subst "  WIDTH=='d$WIDTH ?\""];append ReqBELL [lindex [split [get_property BEL [lindex [get_cells *.Stadio_2/req_latch] 0]] "."] 1]; append ReqBELL "\" :";append ReqBELL  [subst "//$WIDTH Bit ReqCellBELL"]
 
 #LUT position
 set ReqLut  [subst "  WIDTH=='d$WIDTH ?\""];append ReqLut [getAbsRLOC [lindex [get_cells *.Stadio_2/ReqXor] 0]]; append ReqLut "\" :";append ReqLut  [subst "//$WIDTH Bit ReqXorAddress"]
@@ -100,8 +107,12 @@ set data [split $file_data "\n"]
 foreach line $data {
 	if { [regexp -all [subst "$WIDTH Bit DataCellAddress"] $line] } { 
 		puts $f $Datalatch
+	} elseif { [regexp -all [subst "$WIDTH Bit DataCellBELL"] $line] } {
+		puts $f $DataBELS
 	} elseif { [regexp -all [subst "$WIDTH Bit ReqCellAddress"] $line] } {
 		puts $f $ReqLatch
+	} elseif { [regexp -all [subst "$WIDTH Bit ReqCellBELL"] $line] } {
+		puts $f $ReqBELL
 	} elseif { [regexp -all [subst "$WIDTH Bit ReqXorAddress"] $line] } {
 		puts $f $ReqLut
 	} else {

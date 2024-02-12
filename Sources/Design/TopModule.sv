@@ -2,7 +2,7 @@
 
 module TopModule
     #(
-parameter WORD_WIDTH=128
+parameter WORD_WIDTH=32
     )
     (
         input reset,
@@ -30,20 +30,21 @@ parameter WORD_WIDTH=128
         output enB
         */
     );
-    //localparam N = 2;
-    localparam N = 10;
+    localparam N = 2;
+    //localparam N = 10;
     
     //Pipeline
     (* DONT_TOUCH = "yes"*)  logic ack_1;
-    (* DONT_TOUCH = "yes"*) logic ack_delay_1;
-    (* DONT_TOUCH = "yes", U_SET = "Prova", RLOC ="X0Y0"*) LUT1#(.INIT(2'b10)) req_delay_1(.O(ack_delay_1),.I0(ack_1));   //FUNZIA!
-    (* DONT_TOUCH = "yes",U_SET = "Prova", RLOC ="X0Y1"*) LUT1#(.INIT(2'b10)) req_delay_2(.O(ack_up_top_o),.I0(ack_delay_1));   //FUNZIA!
+    (* DONT_TOUCH = "yes"*) logic ack_delay_1,ack_delay_2,ack_delay_3;
+    (* DONT_TOUCH = "yes", U_SET = "Prova", RLOC ="X0Y0"*) LUT1#(.INIT(2'b10)) req_delay_1(.O(ack_delay_2),.I0(ack_delay_3));
+    (* DONT_TOUCH = "yes", U_SET = "Prova", RLOC ="X0Y1"*) LUT1#(.INIT(2'b10)) req_delay_2(.O(ack_delay_1),.I0(ack_delay_2));   //FUNZIA!
+    (* DONT_TOUCH = "yes", U_SET = "Prova", RLOC ="X0Y2"*) LUT1#(.INIT(2'b10)) req_delay_3(.O(ack_up_top_o),.I0(ack_delay_1));   //FUNZIA!
      
      
      
     logic[N-1:0] req,ack;
     logic[WORD_WIDTH-1:0] Data[N-1:0];
-    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_1(reset,req_up_top_i,Data_up_top_i,ack_1,req[0],Data[0],ack[0]);
+    (* DONT_TOUCH = "yes"*) mousetrap_ldce #(55,WORD_WIDTH)  Stadio_1(reset,req_up_top_i,Data_up_top_i,ack_delay_3,req[0],Data[0],ack[0]);
     genvar i;
     generate
       for(i=0;i<N-1;i++) begin
@@ -97,7 +98,7 @@ module CInterface(input A_in,output A_out,input B_in, output B_out, input C_in,o
 endmodule
 
 module PInterface#(
-parameter WORD_WIDTH=128
+parameter WORD_WIDTH=32
 )
 (
   input  req_up_top_i,
@@ -126,6 +127,25 @@ parameter WORD_WIDTH=128
   (* HU_SET = "uset1", RLOC = "X0Y0"*) LUT1#(.INIT(2'b01)) req_1(.O(req),.I0(req_up_top_i));
   (* HU_SET = "uset1", RLOC = "X0Y0", RMP_GRID="GRID"*)LUT1#(.INIT(2'b01)) req_2(.O(req_dw_top_o),.I0(req));
 endmodule
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
