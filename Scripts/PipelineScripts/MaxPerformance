@@ -1,13 +1,14 @@
 #procedura per l'ottimizzazione
 proc MaxTimeConstrain {Stage1 Stage2 fileDescriptor} {
+	set Startpoint "G"
 	puts $fileDescriptor [subst "\n\n#Puts max_delay constrain from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
 	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/*.Data_latch/Q\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage2/req_latch/D\] 0.000}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage1/*.Data_latch/GE\] 0.000}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/Q\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/Q\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/*.Data_latch/$Startpoint\] -to \[get_pins $Stage2/*.Data_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/$Startpoint\] -to \[get_pins $Stage2/req_latch/D\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/$Startpoint\] -to \[get_pins $Stage1/*.Data_latch/GE\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/$Startpoint\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/$Startpoint\] -to \[get_pins $Stage1/req_latch/GE\] 0.000}]
 	puts $fileDescriptor "\n\n"
 }
 

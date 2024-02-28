@@ -20,7 +20,7 @@ module PacketRouteSelector
 	genvar i;
 	generate 
 		for(i=0;i<OUTPORTPORTS;i=i+1) begin
-			LUT2 #(.INIT(4'h8)) RouteAnd(.O(Rsel[i]),.I0(enable), .I1(Rout[i]));
+			(*  DONT_TOUCH = "yes" *)LUT2 #(.INIT(4'h8)) RouteAnd(.O(Rsel[i]),.I0(enable), .I1(Rout[i]));
 		end
 	endgenerate
 	

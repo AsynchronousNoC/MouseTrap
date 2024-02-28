@@ -19,31 +19,47 @@ proc FixNet {net fileDescriptor} {
 	#questo comando recupera la NET route della NET
 	set routes [get_property ROUTE $net];
 	#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
-	set line [subst {set_property FIXED_ROUTE {$routes} \[get_nets $net\] }];
+	set line [subst {set_property LOCK_PINS {$routes} \[get_nets $net\] }];
 	puts $fileDescriptor $line;
 }
 
-proc InportModuleCon {Module fileDescriptor margine_low} {
+proc FixPin {cell fileDescriptor} {
+	#questo comando recupera la NET route della NET
+	set values ""
+	set Pins [get_pins -of_objects [get_cells IPM_EAST/PRC/genblk1[0].RouteAnd]]
+	foreach Pin $Pins {
+		set PhPin [get_bel_pins -of_objects $Pin]
+		set property [get_property REF_PIN_NAME $Pin]
+		lappend values [join [concat $property ":" $PhPin ] ""]
+	}
+	#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
+	set line [subst {set_property LOCK_PINS {$values} \[get_cells $cell\] }];
+	puts  $fileDescriptor $line;
+}
 
-	set	closurePathsReq		[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/req_latch/GE] -hold]
-															 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/req_latch/GE]]]
-	set	closurePathsData	[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -hold -max_paths 1000 ]
-													 		 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -max_paths 1000]]
+proc InportModuleCon {Module fileDescriptor margine_low} {
+	set Startpoint "Q"
+	set max_paths 1000
+
+	set	closurePathsReq		[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/req_latch/GE] -hold]\
+															 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/req_latch/GE]]]
+	set	closurePathsData	[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -hold -max_paths $max_paths ]\
+													 		 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -max_paths $max_paths]]
 													 		 
-	foreach cell [get_cells -of_objects [lindex $closurePaths 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	foreach cell [get_cells -of_objects [lindex $closurePathsReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
 	puts $fileDescriptor "\n"
 	FixNet [get_nets $Module/input_pipe/en] $fileDescriptor
 	
-	set AndPathReq [list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I0] -hold]\
-												[get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I0] ]]
-	foreach cell [get_cells -of_objects [lindex $AndPathReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	set AndPathReq [list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I0] -hold -max_paths $max_paths]\
+												[get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I0] -max_paths $max_paths]]
+	foreach cell [get_cells -of_objects [lindex $AndPathReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
 	puts $fileDescriptor "\n"
 	FixNet [get_nets $Module/PRC/enable] $fileDescriptor
 	
-	set AndPathData [list  [get_timing_paths -max_paths 1000 -from [get_pins $Module/input_pipe/*.Data_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I1] -hold]\
-												 [get_timing_paths -max_paths 1000 -from [get_pins $Module/input_pipe/*.Data_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I1] ]]
+	set AndPathData [list  [get_timing_paths -max_paths $max_paths -from [get_pins $Module/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I1] -hold]\
+												 [get_timing_paths -max_paths $max_paths -from [get_pins $Module/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I1] ]]
 	foreach path [lindex AndPathData 1] {
-		foreach cell [get_cells -of_objects $path] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+		foreach cell [get_cells -of_objects $path] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
 		foreach net [get_nets -of_objects $path] {FixNet $net $fileDescriptor}
 	}
 	puts $fileDescriptor "\n"
@@ -53,10 +69,10 @@ proc InportModuleCon {Module fileDescriptor margine_low} {
 	set min_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 1]]]
 	
 	set MinValue [expr $margine_low*([lindex $MinAndTIme 0] + [lindex $max_enable 0] - [lindex $min_enable 0])]
-	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Module/input_pipe/req_latch/Q\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MinValue}]
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Module/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MinValue}]
 	
 	set MaxValue [expr 1.5*([lindex $MinAndTIme 1] + [lindex $max_enable 1] - [lindex $min_enable 1])]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Module/input_pipe/req_latch/Q\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MaxValue}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Module/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MaxValue}]
 	
 }
 #---------------MAIN----------------#

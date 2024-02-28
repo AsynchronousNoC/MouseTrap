@@ -7,7 +7,7 @@ module RequestGenerator
 )
 (
 	input req_up_i,
-	input  ack_dw_i[OUTPORTPORTS-1:0],
+	input [OUTPORTPORTS-1:0] ack_dw_i,
 	input PacketEnable_up_i,
 	input Tailpassed_dw_i,
 	output req_dw_o,
@@ -22,7 +22,7 @@ module RequestGenerator
 			PacketEnable_dw_o<=PacketEnable_dw_o;
 	end
 		
-	assign req_dw_o = req_up_i ^ (ack_dw_i[0]^ack_dw_i[1]^ack_dw_i[2]^ack_dw_i[3] ^ ack_dw_i[location]);
+	assign req_dw_o = req_up_i ^ (^ack_dw_i ^ ack_dw_i[location]);
 		
 endmodule
 	

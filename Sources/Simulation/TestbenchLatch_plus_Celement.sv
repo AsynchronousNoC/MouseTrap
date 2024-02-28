@@ -11,7 +11,7 @@ module TestbenchLatch_plus_Celement(
         wire Q;
         //LatchVerilog Latch_1 (Enable,Reset, Data, Q1);
         //latchDir Latch_2(Q1, ~Enable,Reset, Q2);
-        DUT myDUT(Enable,Reset,Data,Q);
+        //DUT myDUT(Enable,Reset,Data,Q);
       
         initial begin
             Reset=1;

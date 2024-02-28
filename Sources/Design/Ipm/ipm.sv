@@ -15,11 +15,11 @@ module ipm
 	input    [WIDTH-1:0] Data_up_i,
 	output 							 ack_up_o,
 
-	output		           req_dw_o[OUTPORTS-1:0],
-	output   [WIDTH-1:0] Data_dw_o[OUTPORTS-1:0],
-	input			           ack_dw_i[OUTPORTS-1:0],
-	input 		           Tailpassed_dw_i[OUTPORTS-1:0],
-	output               PacketEnable_dw_o[OUTPORTS-1:0]
+	output   [OUTPORTS-1:0]	           req_dw_o,
+	output   [OUTPORTS-1:0][WIDTH-1:0] Data_dw_o,
+	input    [OUTPORTS-1:0]            ack_dw_i,
+	input 	 [OUTPORTS-1:0]            Tailpassed_dw_i,
+	output   [OUTPORTS-1:0]            PacketEnable_dw_o
 	);
 	genvar i;
 	logic req,ack;
