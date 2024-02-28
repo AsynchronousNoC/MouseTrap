@@ -1,0 +1,78 @@
+#procedure per la robustezza
+proc FixBell {cell fileDescriptor} {
+	#questo comando recupera la posizione BEL della cella
+	set BEL_property [get_property BEL [get_cells $cell]]
+	#questo comando formatta il comando affinchè nel costraint file la posizione BELL sia bloccata
+	set line [subst {set_property BEL $BEL_property \[get_cells $cell\] }];
+	puts $fileDescriptor $line;
+}
+	
+proc FixLOC {cell fileDescriptor} {
+	#questo comando recupera la posizione LOC della cella
+	set LOC_property [get_property LOC [get_cells $cell]]
+	#questo comando formatta il comando affinchè nel costraint file la posizione LOC sia bloccata
+	set line [subst {set_property LOC $LOC_property \[get_cells $cell\] }];
+	puts $fileDescriptor $line;
+}
+	
+proc FixNet {net fileDescriptor} {
+	#questo comando recupera la NET route della NET
+	set routes [get_property ROUTE $net];
+	#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
+	set line [subst {set_property FIXED_ROUTE {$routes} \[get_nets $net\] }];
+	puts $fileDescriptor $line;
+}
+
+proc InportModuleCon {Module fileDescriptor margine_low} {
+
+	set	closurePathsReq		[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/req_latch/GE] -hold]
+															 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/req_latch/GE]]]
+	set	closurePathsData	[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -hold -max_paths 1000 ]
+													 		 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -max_paths 1000]]
+													 		 
+	foreach cell [get_cells -of_objects [lindex $closurePaths 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	puts $fileDescriptor "\n"
+	FixNet [get_nets $Module/input_pipe/en] $fileDescriptor
+	
+	set AndPathReq [list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I0] -hold]\
+												[get_timing_paths -from [get_pins $Module/input_pipe/req_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I0] ]]
+	foreach cell [get_cells -of_objects [lindex $AndPathReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+	puts $fileDescriptor "\n"
+	FixNet [get_nets $Module/PRC/enable] $fileDescriptor
+	
+	set AndPathData [list  [get_timing_paths -max_paths 1000 -from [get_pins $Module/input_pipe/*.Data_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I1] -hold]\
+												 [get_timing_paths -max_paths 1000 -from [get_pins $Module/input_pipe/*.Data_latch/Q] -to [get_pins $Module/PRC/*.RouteAnd/I1] ]]
+	foreach path [lindex AndPathData 1] {
+		foreach cell [get_cells -of_objects $path] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+		foreach net [get_nets -of_objects $path] {FixNet $net $fileDescriptor}
+	}
+	puts $fileDescriptor "\n"
+	
+	set MinAndTIme [list [get_property -max DATAPATH_DELAY [lindex $AndPathData 0]] [get_property -max DATAPATH_DELAY [lindex $AndPathData 1]]]
+	set max_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsData 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsData 1]]]
+	set min_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 1]]]
+	
+	set MinValue [expr $margine_low*([lindex $MinAndTIme 0] + [lindex $max_enable 0] - [lindex $min_enable 0])]
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Module/input_pipe/req_latch/Q\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MinValue}]
+	
+	set MaxValue [expr 1.5*([lindex $MinAndTIme 1] + [lindex $max_enable 1] - [lindex $min_enable 1])]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Module/input_pipe/req_latch/Q\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MaxValue}]
+	
+}
+#---------------MAIN----------------#
+#Global variables
+	set InportPortModule "ipm"
+	set Maximum_tries 10
+	set margine_low 1.1
+	set margine_up 1.5
+
+
+	open_run impl_1
+	set InportModules [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $InportPortModule || REF_NAME== $InportPortModule}]]
+	set f [open Temp.xdc w+] 
+	foreach Module $InportModules {
+		InportModuleCon $Module $f $margine_low
+	}
+	#chiudo il file e lo muovo nel constraint che uso
+	close $f
+	exec mv Temp.xdc ./Sources/Constraints/BundledConstraints.xdc

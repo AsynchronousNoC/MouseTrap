@@ -1,3 +1,4 @@
+
 #procedure per la robustezza
 proc FixBell {cell fileDescriptor} {
 	#questo comando recupera la posizione BEL della cella
@@ -24,12 +25,14 @@ proc FixNet {net fileDescriptor} {
 }
 	
 proc BundledContraint {Stage1 Stage2 fileDescriptor margine_low margine_up} {
-	set TimingPaths [list [get_timing_paths -max_paths 100  -from [get_pins $Stage1/*.Data_latch/G] -to [get_pins $Stage2/*.Data_latch/D] -hold] \
-									[get_timing_paths -max_paths 100  -from [get_pins $Stage1/*.Data_latch/G] -to [get_pins $Stage2/*.Data_latch/D]]]
-	set closurePathsData [list [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE] -hold] \
-												[get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE] ]]
-	set closurePathsReq [list [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/req_latch/GE] -hold] \
-											 [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/req_latch/GE]]]
+	set max_paths 1000
+	set Startpoint "Q"
+	set TimingPaths [list 			[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/*.Data_latch/$Startpoint] -to [get_pins $Stage2/*.Data_latch/D] -hold] \
+															[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/*.Data_latch/$Startpoint] -to [get_pins $Stage2/*.Data_latch/D]]]
+	set closurePathsData [list	[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/*.Data_latch/GE] -hold] \
+															[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/*.Data_latch/GE] ]]
+	set closurePathsReq [list 	[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/req_latch/GE] -hold] \
+											 				[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/req_latch/GE]]]
 	
 	#Ricavo i dati di timing dopo l'ottimizzazione
 	#si ottiene un tempo in nanosecondi
@@ -43,8 +46,8 @@ proc BundledContraint {Stage1 Stage2 fileDescriptor margine_low margine_up} {
 	puts $fileDescriptor [subst "#---------------Set min delay for data latch from $Stage1 to $Stage2"]
 	#usando i doppi apici non mi funziona l'escape del carattere
 	#se non si dichiarano gli endpoint con get_pins ma con get_cells prende quelli sbagliati e questo porta a path segmentation-> alcuni vincoli vengono eliminati
-	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] $min_Bundled}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage2/req_latch/D\] [expr 0.205+$max_Bundled]}]
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage1/req_latch/$Startpoint\] -to \[get_pins $Stage2/req_latch/D\] $min_Bundled}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/$Startpoint\] -to \[get_pins $Stage2/req_latch/D\] [expr 0.205+$max_Bundled]}]
 	
 	#Devo fissare tutte le  net e le celle appartenenti al cammino dei dati una volta che questi sono ottimizzati
 	puts $fileDescriptor [subst "\n\n#Fix Data_latch nets from $Stage1 to $Stage2"]
@@ -54,29 +57,35 @@ proc BundledContraint {Stage1 Stage2 fileDescriptor margine_low margine_up} {
 		#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
 		puts $fileDescriptor "\n"
 	}
-}
-
-proc ClosureAckCon {Stage1 fileDescriptor margine_low} {
-
-	set closurePathsData [list [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE] -hold] \
-												[get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/*.Data_latch/GE] ]]
-	set closurePathsReq [list [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/req_latch/GE] -hold] \
-											 [get_timing_paths -max_paths 100  -from [get_pins $Stage1/req_latch/G] -to [get_pins $Stage1/req_latch/GE]]]
+	
+	
+	set closurePathsData [list	[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/*.Data_latch/GE] -hold] \
+															[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/*.Data_latch/GE] ]]
+	set closurePathsReq [list 	[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/req_latch/GE] -hold] \
+											 				[get_timing_paths -max_paths $max_paths  -from [get_pins $Stage1/req_latch/$Startpoint] -to [get_pins $Stage1/req_latch/GE]]]
+											 
+	foreach TimingPath $closurePathsReq {
+		foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;}
+		puts $fileDescriptor "\n"
+	}
+	FixNet [get_nets $Stage1/en] $fileDescriptor
+	
 	set max_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsData 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsData 1]]]
 	set min_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 1]]]
 	#se fisso i path poi il router non riesce a funzionare
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/*.Data_latch/GE\] [expr 0.250+$margine_low*[lindex $max_enable 1]]}]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.250+$margine_low*[lindex $min_enable 1]]}]
-	
-	set TimingPaths [list [get_timing_paths -max_paths 100  -through [get_pins $Stage1/Req_up_i] -hold] [get_timing_paths -max_paths 100  -through [get_pins $Stage1/Req_up_i]]]
-	set ack_path [list [get_timing_paths -through [get_pins $Stage1/Ack_up_o] -hold] [get_timing_paths -through [get_pins $Stage1/Ack_up_o]]]
-	set ack_time [list [get_property -max DATAPATH_DELAY [lindex $ack_path 0]] [get_property -max DATAPATH_DELAY [lindex $ack_path 1]]]
+	#puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage1/req_latch/G\] -to \[get_pins $Stage1/req_latch/GE\] [expr 0.250+$margine_low*[lindex $min_enable 1]]}]
+
+	set ack_path [list	[get_timing_paths -from [get_pins $Stage2/req_latch/$Startpoint] -to [get_pins $Stage1/req_latch/GE] -hold] \
+											[get_timing_paths -from [get_pins $Stage2/req_latch/$Startpoint] -to [get_pins $Stage1/req_latch/GE] ]]
+	set ack_time [list	[get_property -max DATAPATH_DELAY [lindex $ack_path 0]] \
+											[get_property -max DATAPATH_DELAY [lindex $ack_path 1]]]
 	
 	set MinTime [expr max([lindex $max_enable 0],[lindex $min_enable 0]) - [get_property -max DATAPATH_DELAY [lindex $TimingPaths 0]]]
 	set MinTime_1 [expr 1.5*(max([lindex $max_enable 1],[lindex $min_enable 1]) - [get_property -max DATAPATH_DELAY [lindex $TimingPaths 1]])]
 	
-	puts $fileDescriptor [subst {set_min_delay -through \[get_pins $Stage1/Ack_up_o\] $MinTime}]
-	puts $fileDescriptor [subst {set_max_delay -through \[get_pins $Stage1/Ack_up_o\] [expr max(0.250+1.5*[lindex $ack_time 1],$MinTime_1) ]}]
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Stage2/req_latch/$Startpoint\] -to \[get_pins $Stage1/req_latch/GE\] $MinTime}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Stage2/req_latch/$Startpoint\] -to \[get_pins $Stage1/req_latch/GE\] [expr max(0.250+1.5*[lindex $ack_time 1],$MinTime_1) ]}]
+
 }
 #---------------MAIN----------------#
 #Global variables
@@ -84,14 +93,10 @@ proc ClosureAckCon {Stage1 fileDescriptor margine_low} {
 	set Maximum_tries 10
 	set margine_low 1.1
 	set margine_up 1.5
-
-
+	
 	open_run impl_1
 	set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
 	set f [open Temp.xdc w+] 
-	foreach cell $Pipelines {
-		ClosureAckCon $cell $f $margine_low
-	}
 	#c'è un modo più intelligente di fare n^2 confronti boh forse
 	foreach cell $Pipelines {
 		foreach cellInter $Pipelines {

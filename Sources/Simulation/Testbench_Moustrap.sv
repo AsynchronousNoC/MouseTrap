@@ -6,7 +6,7 @@ module Testbench_Moustrap(
     );
      
      //DUT parameters
-     parameter WORD_WIDTH=128;
+     parameter WORD_WIDTH=256;
      logic reset;
      logic clk;
      initial begin

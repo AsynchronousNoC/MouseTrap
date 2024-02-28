@@ -1,0 +1,59 @@
+proc average {list} {
+    expr {[tcl::mathop::+ {*}$list 0.0] / max(1, [llength $list])}
+}
+
+proc print {title var f} {
+	puts $f [subst {\n\n$title}]
+	puts $f $var
+	puts -nonewline $f  "avg:\t";puts $f [format "%.3f" [average $var]]
+	puts -nonewline $f "max:\t";puts $f [tcl::mathfunc::max {*}$var]
+}
+set Mousetrap_name "mousetrap_ldce"
+set max_paths 1000
+set Pipelines [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Mousetrap_name || REF_NAME== $Mousetrap_name}]]
+set systemTime [clock seconds]
+set Time [clock format $systemTime -format %d:%m:_%H:%M:%S]
+
+set reqData_time_slow  {};set reqData_time_fast  {}
+set req_time_slow {};set req_time_fast {}
+set ack_time_slow {};set ack_time_fast {}
+set closure_time_slow {};set closure_time_fast {}
+set closure_timeData_slow {};set closure_timeData_fast {}
+set error_in_g {};
+set f [open Dati/Tempi[$Time].xdc w+] 
+foreach Pipe $Pipelines {
+	set WIDTH [llength [get_timing_path -max_paths 500 -through [get_pins $Pipe/Data_dw_o]]]
+	set max_enable	[get_property -max DATAPATH_DELAY [get_timing_paths -max_paths $max_paths  -from [get_pins $Pipe/req_latch/Q] -to [get_pins $Pipe/*.Data_latch/GE] ]]
+	set min_enable [get_property -max DATAPATH_DELAY [get_timing_paths -max_paths $max_paths  -from [get_pins $Pipe/req_latch/Q] -to [get_pins $Pipe/req_latch/GE] ]]
+	set Data_delay [get_property DATAPATH_DELAY -max [get_timing_path -max_paths $max_paths -through [get_pins $Pipe/Data_dw_o]]]
+	lappend Bundled [expr $Data_delay +$max_enable -$min_enable]
+	lappend reqData_time_slow [get_property DATAPATH_DELAY -max [get_timing_path -max_paths $max_paths -through [get_pins $Pipe/Data_dw_o]]]
+	lappend req_time_slow [get_property DATAPATH_DELAY -max [get_timing_path -max_paths $max_paths -through [get_pins $Pipe/Req_dw_o]]]
+	lappend ack_time_slow [get_property DATAPATH_DELAY -max [get_timing_path -max_paths $max_paths -through [get_pins $Pipe/Ack_up_o]]]
+	lappend closure_time_slow [get_property DATAPATH_DELAY -max [get_timing_path -max_paths $max_paths -from [get_pins $Pipe/req_latch/Q] -to [get_pins $Pipe/req_latch/GE]]]
+	lappend closure_timeData_slow [get_property DATAPATH_DELAY -max [get_timing_path -max_paths $max_paths -from [get_pins $Pipe/req_latch/Q] -to [get_pins $Pipe/*.Data_latch/GE]]]
+	
+	lappend reqData_time_fast [get_property DATAPATH_DELAY -max [get_timing_path -hold -max_paths $max_paths -through [get_pins $Pipe/Data_dw_o]]]
+	lappend req_time_fast [get_property DATAPATH_DELAY -max [get_timing_path -hold -max_paths $max_paths -through [get_pins $Pipe/Req_dw_o]]]
+	lappend ack_time_fast [get_property DATAPATH_DELAY -max [get_timing_path -hold -max_paths $max_paths -through [get_pins $Pipe/Ack_up_o]]]
+	lappend closure_time_fast [get_property DATAPATH_DELAY -max [get_timing_path -hold -max_paths $max_paths -from [get_pins $Pipe/req_latch/Q] -to [get_pins $Pipe/req_latch/GE]]]
+	lappend closure_timeData_fast [get_property DATAPATH_DELAY -max [get_timing_path -hold -max_paths $max_paths -from [get_pins $Pipe/req_latch/Q] -to [get_pins $Pipe/*.Data_latch/GE]]]
+}
+
+puts $f $WIDTH
+print "Bundled" $Bundled $f
+print "reqData_time_slow" $reqData_time_slow $f
+print "reqData_time_fast" $reqData_time_fast $f
+
+print "req_time_slow" $req_time_slow $f
+print "req_time_fast" $req_time_fast $f
+
+print "ack_time_slow" $ack_time_slow $f
+print "ack_time_fast" $ack_time_fast $f
+
+print "closure_time_slow" $closure_time_slow $f
+print "closure_time_fast" $closure_time_fast $f
+
+print "closure_timeData_slow" $closure_timeData_slow $f
+print "closure_timeData_fast" $closure_timeData_fast $f
+close $f

@@ -2,12 +2,11 @@
 
 module mousetrap_ldce 
 #(
-  parameter xorDelay = 55,
   parameter WIDTH = 16 // larghezza del bundled data.
 )
 (
   input rst,
-  
+  input gen_enable,
   input   Req_up_i,
   input   [WIDTH-1:0] Data_up_i,
   output  Ack_up_o,
@@ -56,7 +55,8 @@ module mousetrap_ldce
   WIDTH=='d128 ?"X73Y260" ://128 Bit ReqXorAddress
   WIDTH=='d256 ?"X65Y260" ://256 Bit ReqXorAddress
   "";
-  logic re,en,gen_enable;
+  logic re,en;
+  //logic gen_enable;
     // importante usare hu_set e non u_set altrimenti la cosa non è gerarchica
     (* HU_SET = "uset0",BEL = string'(ReqCellBELL), RLOC = string'(ReqCellAddress) *) LDCE #(
         .INIT(1'b0),            // Initial value of latch, 1'b0, 1'b1
@@ -89,7 +89,8 @@ module mousetrap_ldce
      endgenerate;
      
      //xor(en =~ (ReqOut ^ AckOut);
-    (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT6_2 #(.INIT(64'h9)) ReqXor(.O5(en), .O6(gen_enable),.I0(Req_dw_o), .I1(Ack_dw_i));
+     logic nc;
+    (* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT6_2 #(.INIT(64'h9)) ReqXor(.O5(en), .O6(nc),.I0(Req_dw_o), .I1(Ack_dw_i));
     //(* HU_SET = "uset0",LOCK_PINS = "I0:A5,I1:A4", RLOC = string'(ReqXorAddress), RPM_GRID = "GRID" *)  LUT2 #(.INIT(4'h9)) ReqXor_1(.O(gen_enable), .I0(Req_dw_o), .I1(Ack_dw_i));
   	assign Req_dw_o = re;
 	  assign Ack_up_o = re;
@@ -97,7 +98,6 @@ endmodule
 
 module mousetrap_ldce_woMacros
 #(
-  parameter xorDelay = 55,
   parameter WIDTH = 16 // larghezza del bundled data.
 )
 (
