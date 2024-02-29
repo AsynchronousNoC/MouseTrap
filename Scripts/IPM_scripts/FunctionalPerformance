@@ -25,14 +25,16 @@ proc FixNet {net fileDescriptor} {
 
 proc FixPin {cell fileDescriptor} {
 	#questo comando recupera la NET route della NET
-	set prop [get_property PRIMITIVE_GROUP $cell]; 
-	if ({$prop}=={LUT}) {
+	set property [get_property PRIMITIVE_GROUP $cell]; 
+	if ({$property}=={LUT}) {
 		set values ""
 		set Pins [get_pins -of_objects [get_cells $cell]]
 		foreach Pin $Pins {
 			set PhPin [get_bel_pins -of_objects $Pin]
-			set property [get_property REF_PIN_NAME $Pin]
-			lappend values [join [concat $property ":" $PhPin ] ""]
+			if ([get_property IS_INPUT $PhPin]==1) {
+				set property [get_property REF_PIN_NAME $Pin]
+				lappend values [join [concat $property ":" $PhPin ] ""]
+			}
 		}
 		#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
 		set line [subst {set_property LOCK_PINS {$values} \[get_cells $cell\] }];

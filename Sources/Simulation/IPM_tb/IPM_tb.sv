@@ -62,7 +62,7 @@ module IPM_tb();
      logic [3:0] x_loc,y_loc;
      logic [2:0] loc;
      initial begin
-        x_loc<=0;y_loc<=0;loc <=0;
+        x_loc<=2;y_loc<=0;loc <=0;
         req_in_top<=0;
         reset=1;
         Data_in_top=0;
@@ -76,6 +76,7 @@ module IPM_tb();
         InputSend({{(WORD_WIDTH-2){1'd1}}, 2'b00});
         #1
         InputSend({{(WORD_WIDTH-2){1'd0}}, 2'b10});
+        y_loc<=3;
         #1
         InputSend({{(WORD_WIDTH-13){1'd0}}, x_loc,y_loc,loc,2'b01});
         #1
