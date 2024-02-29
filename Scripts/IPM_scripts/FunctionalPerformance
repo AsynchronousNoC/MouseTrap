@@ -19,22 +19,25 @@ proc FixNet {net fileDescriptor} {
 	#questo comando recupera la NET route della NET
 	set routes [get_property ROUTE $net];
 	#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
-	set line [subst {set_property LOCK_PINS {$routes} \[get_nets $net\] }];
+	set line [subst {set_property FIXED_ROUTE {$routes} \[get_nets $net\] }];
 	puts $fileDescriptor $line;
 }
 
 proc FixPin {cell fileDescriptor} {
 	#questo comando recupera la NET route della NET
-	set values ""
-	set Pins [get_pins -of_objects [get_cells IPM_EAST/PRC/genblk1[0].RouteAnd]]
-	foreach Pin $Pins {
-		set PhPin [get_bel_pins -of_objects $Pin]
-		set property [get_property REF_PIN_NAME $Pin]
-		lappend values [join [concat $property ":" $PhPin ] ""]
+	set prop [get_property PRIMITIVE_GROUP $cell]; 
+	if ({$prop}=={LUT}) {
+		set values ""
+		set Pins [get_pins -of_objects [get_cells $cell]]
+		foreach Pin $Pins {
+			set PhPin [get_bel_pins -of_objects $Pin]
+			set property [get_property REF_PIN_NAME $Pin]
+			lappend values [join [concat $property ":" $PhPin ] ""]
+		}
+		#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
+		set line [subst {set_property LOCK_PINS {$values} \[get_cells $cell\] }];
+		puts  $fileDescriptor $line;
 	}
-	#questo comando formatta il comando affinchè nel costraint file la posizione della NET sia bloccata
-	set line [subst {set_property LOCK_PINS {$values} \[get_cells $cell\] }];
-	puts  $fileDescriptor $line;
 }
 
 proc InportModuleCon {Module fileDescriptor margine_low} {

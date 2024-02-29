@@ -13,13 +13,11 @@ module RequestGenerator
 	output req_dw_o,
 	output logic PacketEnable_dw_o
 	);
-	always_latch begin
+	always @(*) begin
 		if(PacketEnable_up_i)
 			PacketEnable_dw_o<=1'b1;
-		else if(Tailpassed_dw_i && PacketEnable_up_i==1'b0)
+		else if(Tailpassed_dw_i)
 			PacketEnable_dw_o<=1'b0;
-		else
-			PacketEnable_dw_o<=PacketEnable_dw_o;
 	end
 		
 	assign req_dw_o = req_up_i ^ (^ack_dw_i ^ ack_dw_i[location]);

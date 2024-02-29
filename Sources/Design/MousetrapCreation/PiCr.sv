@@ -19,7 +19,7 @@ parameter WORD_WIDTH=256
         input  ack_dw_top_i
         
     );
-    localparam N = 10;
+    localparam N = 2;
     
     //Pipeline
     (* DONT_TOUCH = "yes"*)  logic ack_1;
