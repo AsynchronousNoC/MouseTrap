@@ -33,6 +33,7 @@ proc FixPin {cell fileDescriptor} {
 			set PhPin [get_bel_pins -of_objects $Pin]
 			if ([get_property IS_INPUT $PhPin]==1) {
 				set property [get_property REF_PIN_NAME $Pin]
+				set PhPin [file tail $PhPin]
 				lappend values [join [concat $property ":" $PhPin ] ""]
 			}
 		}
