@@ -37,7 +37,7 @@ module ipm
 	 (* DONT_TOUCH = "yes"*)
 	generate
 		for(i=0;i<OUTPORTS;i=i+1)
-			 (* DONT_TOUCH = "yes"*) RequestGenerator#(i, OUTPORTS) ReqGen(req,ack_dw_i,Rsel[i], Tailpassed_dw_i[i],req_dw_o[i], PacketEnable_dw_o[i]);
+			 (* DONT_TOUCH = "yes"*) RequestGenerator#(i, OUTPORTS) ReqGen(reset,req,ack_dw_i,Rsel[i], Tailpassed_dw_i[i],req_dw_o[i], PacketEnable_dw_o[i]);
 	endgenerate
 endmodule
 

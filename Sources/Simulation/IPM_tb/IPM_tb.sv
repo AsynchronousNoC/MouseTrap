@@ -93,14 +93,10 @@ module IPM_tb();
      	for(j=0;j<OUTPORTS;j=j+1) begin
      	  initial begin
      	    ack_out_top[j]=0;
-     	    Tailpassed_dw_i[j]= 1;
-     	    #200;
      	    Tailpassed_dw_i[j]=0;
      	   end
      	   always_comb  begin
-     	    if(reset)
-     	      Tailpassed_dw_i[j] =1;
-     	    else if( Data_out[j][1]==1)
+            if( Data_out[j][1]==1)
      	      Tailpassed_dw_i[j] = 1;
      	    else
      	      Tailpassed_dw_i[j] = 0;
