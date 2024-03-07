@@ -23,10 +23,6 @@ module IPM_tb();
      logic [OUTPORTS-1:0] Tailpassed_dw_i;
 	   logic [OUTPORTS-1:0] PacketEnable_dw_o;
 	   
-	   
-	   //for output check and ack sends
-	   logic [OUTPORTS-1:0] req;
-     logic [OUTPORTS-1:0][WORD_WIDTH-1:0] Data_out;
      
      TopModule_Switch Switch_tb(
      .reset(reset),
@@ -40,10 +36,10 @@ module IPM_tb();
      .Data_dw2_o(Data_out_top[2]),
      .Data_dw3_o(Data_out_top[3]),
      .ack_dw_i(ack_out_top),
-     .Tailpassed_dw_i(Tailpassed_dw_i),
-     .PacketEnable_dw_o(PacketEnable_dw_o)
+     .Tailpassed_dw_i(Tailpassed_dw_i)
      );
      
+     /*
      task OutputCheck(input integer j);  
         begin
             wait(ack_out_top[j]!=req[j]);
@@ -51,6 +47,7 @@ module IPM_tb();
             #1;
         end
      endtask
+     */
      
      task InputSend(input[WORD_WIDTH-1:0] Value);  
         begin
@@ -59,6 +56,7 @@ module IPM_tb();
             req_in_top <=~req_in_top;
          end
      endtask
+     
      logic [3:0] x_loc,y_loc;
      logic [2:0] loc;
      initial begin
@@ -95,23 +93,17 @@ module IPM_tb();
      	    ack_out_top[j]=0;
      	    Tailpassed_dw_i[j]=0;
      	   end
+     	   always @(*) begin
+     	   	if (ack_out_top[j]!=req_out_top[j])
+     	   	  ack_out_top[j]<=req_out_top[j];
+     	   end
+     	   
      	   always_comb  begin
-            if( Data_out[j][1]==1)
+            if( Data_out_top[j][1]==1)
      	      Tailpassed_dw_i[j] = 1;
      	    else
      	      Tailpassed_dw_i[j] = 0;
      	   end
-				 always_latch begin
-				    if(reset) begin
-				      req[j]<=0;
-				      ack_out_top[j]<=0;
-				      Data_out[j]<=0;
-				    end else if(PacketEnable_dw_o[j])begin
-				      req[j]<=req_out_top[j];
-				      ack_out_top[j]<=req_out_top[j];
-				      Data_out[j]<= #1 Data_out_top[j];
-				    end
-				 end 
 			end
 		endgenerate
     

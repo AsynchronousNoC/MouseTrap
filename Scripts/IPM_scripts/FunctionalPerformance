@@ -43,57 +43,83 @@ proc FixPin {cell fileDescriptor} {
 	}
 }
 
-proc InportModuleCon {Module fileDescriptor margine_low} {
+proc InportModuleCon {Switch Iport fileDescriptor margine_low} {
 	set Startpoint "Q"
 	set max_paths 1000
 
-	set	closurePathsReq		[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/req_latch/GE] -hold]\
-															 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/req_latch/GE]]]
-	set	closurePathsData	[list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -hold -max_paths $max_paths ]\
-													 		 [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/input_pipe/*.Data_latch/GE] -max_paths $max_paths]]
-													 		 
+	set	closurePathsReq		[list  [get_timing_paths -from [get_pins $Iport/input_pipe/req_latch/$Startpoint] -to [get_pins $Iport/input_pipe/req_latch/GE] -hold]\
+															 [get_timing_paths -from [get_pins $Iport/input_pipe/req_latch/$Startpoint] -to [get_pins $Iport/input_pipe/req_latch/GE]]]
+	set	closurePathsData	[list  [get_timing_paths -from [get_pins $Iport/input_pipe/req_latch/$Startpoint] -to [get_pins $Iport/input_pipe/*.Data_latch/GE] -hold -max_paths $max_paths ]\
+													 		 [get_timing_paths -from [get_pins $Iport/input_pipe/req_latch/$Startpoint] -to [get_pins $Iport/input_pipe/*.Data_latch/GE] -max_paths $max_paths]]
+	set TimingPaths				[list  [get_timing_paths -from [get_pins $Iport/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Switch/*.OPMS/*.data_input/D] -hold -max_paths $max_paths ]\
+													 		 [get_timing_paths -from [get_pins $Iport/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Switch/*.OPMS/*.data_input/D] -max_paths $max_paths]]																 		 							 		 
+	
+	#fisso la net dell'enable nel closure path												 		 
 	foreach cell [get_cells -of_objects [lindex $closurePathsReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
 	puts $fileDescriptor "\n"
-	FixNet [get_nets $Module/input_pipe/en] $fileDescriptor
+	FixNet [get_nets $Iport/input_pipe/en] $fileDescriptor
 	
-	set AndPathReq [list  [get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I0] -hold -max_paths $max_paths]\
-												[get_timing_paths -from [get_pins $Module/input_pipe/req_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I0] -max_paths $max_paths]]
-	foreach cell [get_cells -of_objects [lindex $AndPathReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
-	puts $fileDescriptor "\n"
-	FixNet [get_nets $Module/PRC/enable] $fileDescriptor
-	
-	set AndPathData [list  [get_timing_paths -max_paths $max_paths -from [get_pins $Module/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I1] -hold]\
-												 [get_timing_paths -max_paths $max_paths -from [get_pins $Module/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Module/PRC/*.RouteAnd/I1] ]]
+	#fisso le linee dati che vanno nella logica del PRC
+	set AndPathData [list  [get_timing_paths -max_paths $max_paths -from [get_pins $Iport/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Iport/PRC/*.RouteAnd/I1] -hold]\
+												 [get_timing_paths -max_paths $max_paths -from [get_pins $Iport/input_pipe/*.Data_latch/$Startpoint] -to [get_pins $Iport/PRC/*.RouteAnd/I1] ]]
 	foreach path [lindex AndPathData 1] {
 		foreach cell [get_cells -of_objects $path] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
 		foreach net [get_nets -of_objects $path] {FixNet $net $fileDescriptor}
 	}
 	puts $fileDescriptor "\n"
 	
+	#fisso la net dell'enable nel PRC e imposto il min e max delay di tutta la net	
+	set AndPathReq [list  [get_timing_paths -from [get_pins $Iport/input_pipe/req_latch/$Startpoint] -to [get_pins $Iport/PRC/*.RouteAnd/I0] -hold -max_paths $max_paths]\
+												[get_timing_paths -from [get_pins $Iport/input_pipe/req_latch/$Startpoint] -to [get_pins $Iport/PRC/*.RouteAnd/I0] -max_paths $max_paths]]
+	foreach cell [get_cells -of_objects [lindex $AndPathReq 1]] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor;FixPin $cell $fileDescriptor;}
+	puts $fileDescriptor "\n"
+	FixNet [get_nets $Iport/PRC/enable] $fileDescriptor
+	
 	set MinAndTIme [list [get_property -max DATAPATH_DELAY [lindex $AndPathData 0]] [get_property -max DATAPATH_DELAY [lindex $AndPathData 1]]]
 	set max_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsData 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsData 1]]]
 	set min_enable [list [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 0]] [get_property -max DATAPATH_DELAY [lindex $closurePathsReq 1]]]
 	
 	set MinValue [expr $margine_low*([lindex $MinAndTIme 0] + [lindex $max_enable 0] - [lindex $min_enable 0])]
-	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Module/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MinValue}]
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Iport/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Iport/PRC/*.RouteAnd/I0\] $MinValue}]
 	
 	set MaxValue [expr 1.5*([lindex $MinAndTIme 1] + [lindex $max_enable 1] - [lindex $min_enable 1])]
-	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Module/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Module/PRC/*.RouteAnd/I0\] $MaxValue}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Iport/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Iport/PRC/*.RouteAnd/I0\] $MaxValue}]
+	puts $fileDescriptor "\n"
+	
+	#fisso le net che vanno alle outports
+	#foreach TimingPath $TimingPaths {
+	#	foreach cell [get_cells -of_objects $TimingPath] {FixBell $cell $fileDescriptor;FixLOC $cell $fileDescriptor; FixPin $cell $fileDescriptor;}
+	#	foreach net [get_nets -of_objects $TimingPath] {FixNet $net $fileDescriptor}
+		#rimangono fuori il lock dei PIN che va fatto nel caso di LUT-> come implementarlo? con un if sul foreach cell?
+	#	puts $fileDescriptor "\n"
+	#}
+	
+	#imposto il min e max delay del wire della richiesta
+	set max_Data [list [get_property -max DATAPATH_DELAY [lindex $TimingPaths 0]] [get_property -max DATAPATH_DELAY [lindex $TimingPaths 1]] ]
+	set min_Bundled [expr $margine_low*([lindex $max_Data 0] + [lindex $max_enable 0]- [lindex $min_enable 0])]
+	set max_Bundled [expr 1.5*([lindex $max_Data 1] + [lindex $max_enable 1]- [lindex $min_enable 1])]
+	puts $fileDescriptor [subst {set_min_delay -from \[get_pins $Iport/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Switch/*.OPMS/req_input/D\] $min_Bundled}]
+	puts $fileDescriptor [subst {set_max_delay -from \[get_pins $Iport/input_pipe/req_latch/$Startpoint\] -to \[get_pins $Switch/*.OPMS/req_input/D\] [expr 0.205+$max_Bundled]}]
 	
 }
 #---------------MAIN----------------#
 #Global variables
 	set InportPortModule "ipm"
+	set Switch "Switch"
 	set Maximum_tries 10
 	set margine_low 1.1
 	set margine_up 1.5
 
 
 	open_run impl_1
+	set Switches [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $Switch || REF_NAME== $Switch}]]
 	set InportModules [get_cells -hierarchical -filter [subst {ORIG_REF_NAME== $InportPortModule || REF_NAME== $InportPortModule}]]
 	set f [open Temp.xdc w+] 
-	foreach Module $InportModules {
-		InportModuleCon $Module $f $margine_low
+	foreach Switch $Switches {
+		set InportModules [get_cells -filter [subst {ORIG_REF_NAME== $InportPortModule || REF_NAME== $InportPortModule}] $Switches/*]
+		foreach Iport $InportModules {
+			InportModuleCon $Switch $Iport $f $margine_low
+		}
 	}
 	#chiudo il file e lo muovo nel constraint che uso
 	close $f
