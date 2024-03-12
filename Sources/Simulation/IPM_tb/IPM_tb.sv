@@ -21,7 +21,6 @@ module IPM_tb();
      logic [OUTPORTS-1:0][WORD_WIDTH-1:0] Data_out_top;
      logic [OUTPORTS-1:0] ack_out_top;
      logic [OUTPORTS-1:0] Tailpassed_dw_i;
-	   logic [OUTPORTS-1:0] PacketEnable_dw_o;
 	   
      
      TopModule_Switch Switch_tb(
@@ -39,15 +38,6 @@ module IPM_tb();
      .Tailpassed_dw_i(Tailpassed_dw_i)
      );
      
-     /*
-     task OutputCheck(input integer j);  
-        begin
-            wait(ack_out_top[j]!=req[j]);
-            ack_out_top[j]<=req[j];
-            #1;
-        end
-     endtask
-     */
      
      task InputSend(input[WORD_WIDTH-1:0] Value);  
         begin
@@ -57,32 +47,28 @@ module IPM_tb();
          end
      endtask
      
-     logic [3:0] x_loc,y_loc;
-     logic [2:0] loc;
+      // X_lox | Y_loc | Loc | 2 bit di head
+     logic [0:7][WORD_WIDTH-1:0] dati = '{ 
+        {{(WORD_WIDTH-13){1'd0}}, 4'd2,4'd0,3'b0,2'b01} , 
+        {{(WORD_WIDTH-2){1'd0}}, 2'b00},
+        {{(WORD_WIDTH-2){1'd1}}, 2'b00},
+        {{(WORD_WIDTH-2){1'd0}}, 2'b10},
+        {{(WORD_WIDTH-13){1'd0}}, 4'd2,4'd0,3'b0,2'b01},
+        {{(WORD_WIDTH-2){1'd0}}, 2'b00},
+        {{(WORD_WIDTH-2){1'd1}}, 2'b00},
+        {{(WORD_WIDTH-2){1'd0}}, 2'b10}};
+     integer num;
      initial begin
-        x_loc<=2;y_loc<=0;loc <=0;
         req_in_top<=0;
         reset=1;
         Data_in_top=0;
         #200
         reset<=0;
         #100
-        InputSend({{(WORD_WIDTH-13){1'd0}}, x_loc,y_loc,loc,2'b01});
-        #1
-        InputSend({{(WORD_WIDTH-2){1'd0}}, 2'b00});
-        #1
-        InputSend({{(WORD_WIDTH-2){1'd1}}, 2'b00});
-        #1
-        InputSend({{(WORD_WIDTH-2){1'd0}}, 2'b10});
-        y_loc<=3;
-        #1
-        InputSend({{(WORD_WIDTH-13){1'd0}}, x_loc,y_loc,loc,2'b01});
-        #1
-        InputSend({{(WORD_WIDTH-2){1'd0}}, 2'b00});
-        #1
-        InputSend({{(WORD_WIDTH-2){1'd1}}, 2'b00});
-        #1
-        InputSend({{(WORD_WIDTH-2){1'd0}}, 2'b10});
+        for(num=0;num<8;num=num+1) begin
+          InputSend(dati[num]);
+          #1;
+        end
      end
      
      
